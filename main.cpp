@@ -1,7 +1,7 @@
+#include "A1Config.h"
 #include <iostream>
 #include <getopt.h>
 #include <unistd.h>
-//#include <pthread.h>
 #include <random>
 #include "Util.h"
 
@@ -11,12 +11,10 @@ using namespace std;
 #ifndef N
 #define N 1000
 #endif
-//#define DBL_PREC
+
 
 int main(int argc, char **argv) {
     // Program states
-    pthread_mutex_t mutex_t;
-    pthread_mutex_init(&mutex_t, NULL);
     bool seq_ver, p_ver, cuda_ver, veri_run;
     int c, num_threads;
     struct timespec t0, t1;
@@ -58,7 +56,7 @@ int main(int argc, char **argv) {
     }
     srand(time(NULL));
 
-#ifdef DBL_PREC
+#ifdef USE_DOUBLE
     double answer = 0;
     double answer_s = 0;
     cout << "Generating double vectors " << endl;
@@ -84,7 +82,9 @@ int main(int argc, char **argv) {
     }
 #endif
 
-
+#ifdef USE_DOUBLE
+    cout << "Defined : USE_DOUBLE" << endl;
+#endif
 
 
     if (p_ver) {
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
             answer += vector1[i] * vector2[i];
         }
         GET_TIME(t1);
-        comp_time = Util::Elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "Sequential Version Elapsed-time(ms) = " << comp_time << " ms" << endl;
     }
 
