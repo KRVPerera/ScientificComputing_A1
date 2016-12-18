@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     struct timespec t0, t1;
     float comp_time;
     unsigned long sec, nsec;
-    int N = 1000;
+    int N = 600;
     opterr = 1;
     seq_ver = p_ver = cuda_ver = veri_run = false;
 
@@ -82,17 +82,21 @@ int main(int argc, char **argv) {
     long double answer_p = 0;
     cout << "Generating double Matrices of size " << N << "x" << N << "\n";
 
-    double mat1[N][N];
-    double mat2[N][N];
-    double mat_ans[N][N];
+    double **mat1 = new double*[N];
+    double **mat2 = new double*[N];
+    double **mat_ans = new double*[N];
     double local_sum[num_threads] = {};
 
     for (int j = 0; j < N; ++j) {
+        mat1[j] = new double[N];
+        mat2[j] = new double[N];
+        mat_ans[j] = new double[N];
         for (int i = 0; i < N; ++i) {
-            double val1 = random()%2+1;
-            double val2 = random()%2+1;
-            mat1[i][j] = val1;
-            mat2[i][j] = val2;
+            double val1 = random() % 2 + 1;
+            double val2 = random() % 2 + 1;
+            mat1[j][i] = val1;
+            mat2[j][i] = val2;
+            mat_ans[j][i] = 0;
         }
     }
 #else
@@ -105,18 +109,20 @@ int main(int argc, char **argv) {
     float **mat1 = new float*[N];
     float **mat2 = new float*[N];
     float **mat_ans = new float*[N];
-    float local_sum[num_threads] = {};
+    float **mat_p_ans = new float*[N];
 
     for (int j = 0; j < N; ++j) {
         mat1[j] = new float[N];
         mat2[j] = new float[N];
         mat_ans[j] = new float[N];
+        mat_p_ans[j] = new float[N];
         for (int i = 0; i < N; ++i) {
             float val1 = random() % 2 + 1;
             float val2 = random() % 2 + 1;
-            mat1[i][j] = val1;
-            mat2[i][j] = val2;
-            mat_ans[i][j] = 0;
+            mat1[j][i] = val1;
+            mat2[j][i] = val2;
+            mat_ans[j][i] = 0;
+            mat_p_ans[j][i] = 0;
         }
     }
 
@@ -135,15 +141,20 @@ int main(int argc, char **argv) {
         start_time = omp_get_wtime();
 
         omp_set_num_threads(num_threads);
-
-#pragma omp parallel num_threads(num_threads)
+        double loc_sum;
+        int i,j,k;
+        #pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
         {
-            int id = omp_get_thread_num();
-            int num_threads = omp_get_num_threads();
-            int istart = floor((id * N) / num_threads);
-            int iend = floor(((id + 1) * N) / num_threads);
-            if (id == num_threads - 1) {
-                iend = N;
+
+            #pragma omp for schedule (static) reduction(+:loc_sum)
+            for ( i = 0; i < N; ++i) {
+                for ( j = 0; j < N; ++j) {
+                    loc_sum = 0;
+                    for ( k = 0; k < N; ++k) {
+                        loc_sum = loc_sum + (mat1[i][k] * mat2[k][j]);
+                    }
+                    mat_p_ans[i][j] = loc_sum;
+                }
             }
 
         }
@@ -174,19 +185,21 @@ int main(int argc, char **argv) {
 
 
     if (veri_run) {
+        double diff = 0;
         if (cuda_ver) {
             if (fabs(answer - answer_c) > 0.01f) {
                 cout << "Values are different" << endl;
                 cout << "C >>> Cuda Version Answer: " << answer_c << "\n";
             }
         } else if (p_ver) {
-            if (fabs(answer - answer_p) > 0.01f) {
-                cout << "Values are different" << endl;
-                cout << "P >>> Parallel Version Answer: " << answer_p << "\n";
+
+            for (int i = 0; i < N; ++i) {
+                for (int j = 0; j < N; ++j) {
+                    diff += fabs(mat_p_ans[i][j] - mat_ans[i][j]);
+                }
             }
         }
-        cout << "S >>> Serial Version Answer: " << answer << "\n";
-        cout << "Diff : " << fabs(answer - answer_p) << "\n";
+        cout << "Diff : " << diff << "\n";
     }
 
     // Cleaning up

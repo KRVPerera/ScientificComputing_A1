@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
     struct timespec t0, t1;
     float comp_time;
     unsigned long sec, nsec;
-    long N = 100000000;
+    long N = 10000;
     opterr = 1;
     seq_ver = p_ver = cuda_ver = veri_run = false;
     ios_base::sync_with_stdio(0);
