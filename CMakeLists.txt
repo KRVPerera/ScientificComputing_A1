@@ -1,10 +1,27 @@
 project(CS4552_A1)
 cmake_minimum_required(VERSION 3.1)
+set(CMAKE_CXX_STANDARD 11)
 
 # Set version of the project
 set(CS4552_A1_VERSION_MAJOR 0)
 set(CS4552_A1_VERSION_MINOR 9)
 
-add_subdirectory(Common)
+
+# Assignment configuration
+set(MAX_THREADS 20)
+
+# option to select float or double
+option(USE_DOUBLE "Use double values in computation" OFF)
+
+configure_file("A1Config.h.in"
+        "${PROJECT_BINARY_DIR}/A1Config.h")
+
+# adding include path to find the generated config file
+include_directories("${PROJECT_BINARY_DIR}")
+include_directories("include")
+
+set(GCC_FLAGS "-mcmodel=large -Wall -m64")
+
+add_subdirectory(Util2)
 add_subdirectory(Q2)
 add_subdirectory(Q3)

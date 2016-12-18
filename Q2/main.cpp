@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <omp.h>
 #include "Util.h"
-#include "A1Config.h"
+#include <A1Config.h>
 
 using namespace std;
 
