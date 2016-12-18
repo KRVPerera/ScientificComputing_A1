@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <omp.h>
 
-#include "Util.h"
 #include <A1Config.h>
 
 using namespace std;
@@ -101,9 +100,6 @@ int main(int argc, char **argv) {
     }
 #else
 
-    float answer = 0;
-    float answer_c = 0;
-    float answer_p = 0;
     cout << "Generating float Matrices of size " << N << "x" << N << "\n";
 
     float **mat1 = new float*[N];
@@ -140,7 +136,7 @@ int main(int argc, char **argv) {
         //opm
         start_time = omp_get_wtime();
 
-        omp_set_num_threads(num_threads);
+    //    omp_set_num_threads(num_threads);
         double loc_sum;
         int i,j,k;
         #pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
@@ -159,17 +155,18 @@ int main(int argc, char **argv) {
 
         }
         run_time = omp_get_wtime() - start_time;    // Getting the end time for parallel version
-        cout << "P >>> Parallel Version Elapsed-time(ms) = " << run_time << " ms\n";
+        cout << "P >>> Parallel Version Elapsed-time(s) = " << run_time << " s\n";
     }
 
     if (cuda_ver) {
         cout << "C >>> Cuda version is running...\n";
-        answer_c = 0;
     }
 
     if (seq_ver || veri_run) {
         cout << "S >>> Sequential Version running...\n";
-        answer = 0;GET_TIME(t0);
+        double start_time, run_time;
+//        GET_TIME(t0);
+        start_time = omp_get_wtime();
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
                 // mat_ans is already set to zero
@@ -177,20 +174,18 @@ int main(int argc, char **argv) {
                     mat_ans[i][j] += mat1[i][k] * mat2[k][j];
                 }
             }
-        }GET_TIME(t1);
-
-        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
-        cout << "S >>> Sequential Version Elapsed-time(ms) = " << comp_time << " ms\n";
+        }
+        //GET_TIME(t1);
+        run_time = omp_get_wtime() - start_time;
+//        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "S >>> Sequential Version Elapsed-time(s) = " << run_time << " s\n";
     }
 
 
     if (veri_run) {
         double diff = 0;
         if (cuda_ver) {
-            if (fabs(answer - answer_c) > 0.01f) {
-                cout << "Values are different" << endl;
-                cout << "C >>> Cuda Version Answer: " << answer_c << "\n";
-            }
+
         } else if (p_ver) {
 
             for (int i = 0; i < N; ++i) {
