@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
     struct timespec t0, t1;
     float comp_time;
     unsigned long sec, nsec;
-    int N = 100000000;
+    long N = 100000000;
     opterr = 1;
     seq_ver = p_ver = cuda_ver = veri_run = false;
     ios_base::sync_with_stdio(0);
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
                 break;
             case 'n':
                 try {
-                    N = stoi(optarg);
+                    N = stol(optarg);
                 } catch (std::logic_error) {
                     cerr << "Invalid value for -n, set to 1000" << endl;
                     N = 1000;
@@ -62,7 +62,6 @@ int main(int argc, char **argv) {
                 abort();
         }
     }
-
     if (num_threads > MAX_THREADS) {
         cerr << "Thread count cannot exceed " << MAX_THREADS << endl;
         abort();
@@ -78,7 +77,7 @@ int main(int argc, char **argv) {
 
 //    double vector1[N];
 //    double vector2[N];
-    double local_sum[num_threads];
+    double local_sum[num_threads] = {};
     vector<double> vector1(N);
     vector<double> vector2(N);
 //    vector<double> local_sum(num_threads);
@@ -97,7 +96,7 @@ int main(int argc, char **argv) {
 
     vector<float> vector1(N);
     vector<float> vector2(N);
-    vector<float> local_sum(num_threads);
+    float local_sum[num_threads] = {};
 
     for (int j = 0; j < N; ++j) {
         float val = random()%2+1;
@@ -110,7 +109,7 @@ int main(int argc, char **argv) {
 #ifdef USE_DOUBLE
     cout << "Defined : USE_DOUBLE" << endl;
 #endif
-
+    cout << "Vector creation done " << endl;
 
     if (p_ver) {
         cout << "P >>> Parallel Version running...\n";
@@ -126,15 +125,16 @@ int main(int argc, char **argv) {
         {
             int id = omp_get_thread_num();
             int num_threads = omp_get_num_threads();
-            int istart = (id * N) / num_threads;
-            int iend = ((id + 1) * N) / num_threads;
-            local_sum[id] = 0;
-            double loc_s = 0;
-            for (int i = istart; i < iend; i++) {
-//                local_sum[id] = local_sum[id] + (vector1[i] * vector2[i]);
-                loc_s = loc_s + (vector1[i] * vector2[i]);
+            int istart = floor((id * N) / num_threads);
+            int iend = floor(((id + 1) * N) / num_threads);
+            if(id == num_threads - 1){
+                iend = N;
             }
-            local_sum[id] = loc_s;
+            local_sum[id] = 0;
+            //TODO : Float version error
+            for (int i = istart; i < iend; i++) {
+                local_sum[id] = local_sum[id] + (vector1[i] * vector2[i]);
+            }
         }
 
         for (int valid = 0; valid < num_threads; valid++) {

@@ -6,7 +6,7 @@ set(CS4552_A1_VERSION_MAJOR 0)
 set(CS4552_A1_VERSION_MAJOR 9)
 
 # Assignment configuration
-set(MAX_THREADS 40)
+set(MAX_THREADS 20)
 
 # option to select float or double
 option(USE_DOUBLE "Use double values in computation" ON)
@@ -18,7 +18,7 @@ configure_file("${PROJECT_SOURCE_DIR}/A1Config.h.in"
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/include")
 
-set(GCC_FLAGS "-mcmodel=large -Wall")
+set(GCC_FLAGS "-mcmodel=large -Wall -m64")
 set(SOURCE_FILES main.cpp src/Util.cpp include/Util.h A1Config.h)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
 
