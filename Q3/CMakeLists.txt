@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.1)
 set(CMAKE_CXX_STANDARD 11)
 set(SOURCE_FILES main.cpp)
 
-set(GCC_FLAGS "-mcmodel=large -Wall -m64")
+set(GCC_FLAGS "-mcmodel=large -Wall -m64 -O3 -fstack-check")
 set(SOURCE_FILES main.cpp)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
 
@@ -15,4 +15,4 @@ if (OPENMP_FOUND)
 endif (OPENMP_FOUND)
 
 add_executable(CS4552_A1_Q3 ${SOURCE_FILES} main.cpp)
-target_link_libraries(${PROJECT_NAME} Util2)
+target_link_libraries(${PROJECT_NAME} Util)

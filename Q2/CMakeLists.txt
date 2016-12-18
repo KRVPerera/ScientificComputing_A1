@@ -1,20 +1,7 @@
 project(CS4552_A1_Q2)
 cmake_minimum_required(VERSION 3.1)
 
-## Assignment configuration
-#set(MAX_THREADS 20)
-#
-## option to select float or double
-#option(USE_DOUBLE "Use double values in computation" ON)
-#
-#configure_file("A1Config.h.in"
-#        "${PROJECT_BINARY_DIR}/A1Config.h")
-#
-## adding include path to find the generated config file
-#include_directories("${PROJECT_BINARY_DIR}")
-#include_directories("include")
-
-set(GCC_FLAGS "-mcmodel=large -Wall -m64")
+set(GCC_FLAGS "-mcmodel=large -Wall -m64 -O3")
 set(SOURCE_FILES main.cpp)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
 
@@ -33,4 +20,4 @@ endif (OPENMP_FOUND)
 set(CMAKE_CXX_STANDARD 11)
 
 add_executable(CS4552_A1_Q2 ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} Util2)
+target_link_libraries(${PROJECT_NAME} Util)

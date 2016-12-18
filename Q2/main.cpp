@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
     double local_sum[num_threads] = {};
     vector<double> vector1(N);
     vector<double> vector2(N);
-//    vector<double> local_sum(num_threads);
+
     double tmp_val;
     for (int j = 0; j < N; ++j) {
         tmp_val = random() % 2 + 1;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
         cout << "Diff : " << fabs(answer - answer_p) << "\n";
     }
 
-    std::cout << "Successful! \n";
+    std::cout << "Q2 Successful ran..! \n";
     return 0;
 
 }

@@ -3,19 +3,202 @@
 //
 
 #include<iostream>
-#include <A1Config.h>
+#include <getopt.h>
+#include <unistd.h>
+#include <random>
+#include <algorithm>
+#include <omp.h>
+
 #include "Util.h"
+#include <A1Config.h>
 
 using namespace std;
 
+#define MAX_N 1800
+
 int main(int argc, char **argv) {
     ios_base::sync_with_stdio(0);
-    cout << "Hello from Q3" << endl;
-    vector<float> mm;
-    mm.push_back(5.0);
-    mm.push_back(5.0);
-    mm.push_back(5.0);
-    mm.push_back(5.0);
-    cout << Util::Mean(mm) << endl;
-    cout << CS4552_A1_VERSION_MAJOR << endl;
+    bool seq_ver, p_ver, cuda_ver, veri_run;
+    int c, num_threads = 2;
+    struct timespec t0, t1;
+    float comp_time;
+    unsigned long sec, nsec;
+    int N = 1000;
+    opterr = 1;
+    seq_ver = p_ver = cuda_ver = veri_run = false;
+
+    while ((c = getopt(argc, argv, "scp:vn:")) != -1) {
+        switch (c) {
+            case 'p':
+                p_ver = true;
+                try {
+                    num_threads = stoi(optarg);
+                } catch (std::logic_error) {
+                    cerr << "Invalid value for -p, set to 8" << endl;
+                    num_threads = 2;
+                }
+                break;
+            case 'n':
+                try {
+                    N = stoi(optarg);
+                } catch (std::logic_error) {
+                    cerr << "Invalid value for -n, set to 1000" << endl;
+                    N = 1000;
+                }
+                break;
+            case 's':
+                seq_ver = true;
+                break;
+            case 'g':
+                cuda_ver = true;
+                break;
+            case 'v':
+                veri_run = true;
+                break;
+            case '?':
+                if (optopt == 'p') {
+                    cerr << "Option -p requires number of threads" << endl;
+                } else {
+                    cerr << "Unknown option character" << endl;
+                }
+                return 1;
+            default:
+                abort();
+        }
+    }
+    if (num_threads > MAX_THREADS) {
+        cerr << "Thread count cannot exceed " << MAX_THREADS << endl;
+        abort();
+    }
+
+    if (N > MAX_N) {
+        cerr << "Please choose a smaller size for N. N should be less than " << MAX_N << endl;
+    }
+    srand(time(NULL));
+
+#ifdef USE_DOUBLE
+    long double answer = 0;
+    long double answer_c = 0;
+    long double answer_p = 0;
+    cout << "Generating double Matrices of size " << N << "x" << N << "\n";
+
+    double mat1[N][N];
+    double mat2[N][N];
+    double mat_ans[N][N];
+    double local_sum[num_threads] = {};
+
+    for (int j = 0; j < N; ++j) {
+        for (int i = 0; i < N; ++i) {
+            double val1 = random()%2+1;
+            double val2 = random()%2+1;
+            mat1[i][j] = val1;
+            mat2[i][j] = val2;
+        }
+    }
+#else
+
+    float answer = 0;
+    float answer_c = 0;
+    float answer_p = 0;
+    cout << "Generating float Matrices of size " << N << "x" << N << "\n";
+
+    float **mat1 = new float*[N];
+    float **mat2 = new float*[N];
+    float **mat_ans = new float*[N];
+    float local_sum[num_threads] = {};
+
+    for (int j = 0; j < N; ++j) {
+        mat1[j] = new float[N];
+        mat2[j] = new float[N];
+        mat_ans[j] = new float[N];
+        for (int i = 0; i < N; ++i) {
+            float val1 = random() % 2 + 1;
+            float val2 = random() % 2 + 1;
+            mat1[i][j] = val1;
+            mat2[i][j] = val2;
+            mat_ans[i][j] = 0;
+        }
+    }
+
+#endif
+
+#ifdef USE_DOUBLE
+    cout << "Defined : USE_DOUBLE" << endl;
+#endif
+    cout << "Matrices creation Done... " << endl;
+
+    if (p_ver) {
+        cout << "P >>> Parallel Version running...\n";
+        cout << "P >>> number of threads : " << num_threads << "\n";
+        double start_time, run_time;
+        //opm
+        start_time = omp_get_wtime();
+
+        omp_set_num_threads(num_threads);
+
+#pragma omp parallel num_threads(num_threads)
+        {
+            int id = omp_get_thread_num();
+            int num_threads = omp_get_num_threads();
+            int istart = floor((id * N) / num_threads);
+            int iend = floor(((id + 1) * N) / num_threads);
+            if (id == num_threads - 1) {
+                iend = N;
+            }
+
+        }
+        run_time = omp_get_wtime() - start_time;    // Getting the end time for parallel version
+        cout << "P >>> Parallel Version Elapsed-time(ms) = " << run_time << " ms\n";
+    }
+
+    if (cuda_ver) {
+        cout << "C >>> Cuda version is running...\n";
+        answer_c = 0;
+    }
+
+    if (seq_ver || veri_run) {
+        cout << "S >>> Sequential Version running...\n";
+        answer = 0;GET_TIME(t0);
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                // mat_ans is already set to zero
+                for (int k = 0; k < N; ++k) {
+                    mat_ans[i][j] += mat1[i][k] * mat2[k][j];
+                }
+            }
+        }GET_TIME(t1);
+
+        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "S >>> Sequential Version Elapsed-time(ms) = " << comp_time << " ms\n";
+    }
+
+
+    if (veri_run) {
+        if (cuda_ver) {
+            if (fabs(answer - answer_c) > 0.01f) {
+                cout << "Values are different" << endl;
+                cout << "C >>> Cuda Version Answer: " << answer_c << "\n";
+            }
+        } else if (p_ver) {
+            if (fabs(answer - answer_p) > 0.01f) {
+                cout << "Values are different" << endl;
+                cout << "P >>> Parallel Version Answer: " << answer_p << "\n";
+            }
+        }
+        cout << "S >>> Serial Version Answer: " << answer << "\n";
+        cout << "Diff : " << fabs(answer - answer_p) << "\n";
+    }
+
+    // Cleaning up
+    for (int l = N; l > 0; ) {
+        delete[] mat1[--l];
+        delete[] mat2[l];
+        delete[] mat_ans[l];
+    }
+    delete[] mat1;
+    delete[] mat2;
+    delete[] mat_ans;
+
+    std::cout << "Q3 Successfully ran\n";
+    return 0;
 }
