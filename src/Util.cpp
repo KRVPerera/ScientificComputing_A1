@@ -23,7 +23,7 @@ float Util::Mean(vector<float> times) {
 float Util::StandardDeviation(vector<float> times) {
     double mean = Util::Mean(times);
     double variance = 0;
-    for (int i = 0; i < times.size(); ++i) {
+    for (unsigned int i = 0; i < times.size(); ++i) {
         variance += pow(times.at(i) - mean, 2);
     }
     variance = variance / times.size();
