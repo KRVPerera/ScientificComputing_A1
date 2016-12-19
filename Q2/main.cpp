@@ -83,9 +83,9 @@ int main(int argc, char **argv) {
 
     double tmp_val;
     for (int j = 0; j < N; ++j) {
-        tmp_val = random() % 2 + 1;
+        tmp_val = 1.0*random()/RAND_MAX + 1;
         vector1[j] = tmp_val;
-        tmp_val = random() % 2 + 1;
+        tmp_val = 1.0*random()/RAND_MAX + 1;
         vector2[j] = tmp_val;
     }
 #else
@@ -98,11 +98,15 @@ int main(int argc, char **argv) {
     vector<float> vector2(N);
     float local_sum[num_threads] = {};
 
-    for (int j = 0; j < N; ++j) {
-        float val = random()%2+1;
-        vector1[j] = val;
-        val = random();
-        vector2[j] = val;
+    #pragma omp parallel num_threads(num_threads)
+    {
+        #pragma omp for
+        for (int j = 0; j < N; ++j) {
+            float val = random() % 2 + 1;
+            vector1[j] = val;
+            val = random();
+            vector2[j] = val;
+        }
     }
 #endif
 
@@ -116,7 +120,7 @@ int main(int argc, char **argv) {
         cout << "P >>> number of threads : " << num_threads << "\n";
         double start_time, run_time;
         //opm
-        start_time = omp_get_wtime();
+        start_time = omp_get_wtime()*1000;
         //int id, istart, iend,i;
         //  #pragma omp parallel shared(local_sum, vector1, vector2, num_threads) private(id, istart, iend, i)
         omp_set_num_threads(num_threads);
@@ -131,7 +135,9 @@ int main(int argc, char **argv) {
                 iend = N;
             }
             local_sum[id] = 0;
+
             //TODO : Float version error
+//            #pragma omp for schedule(static)
             for (int i = istart; i < iend; i++) {
                 local_sum[id] = local_sum[id] + (vector1[i] * vector2[i]);
             }
@@ -141,8 +147,8 @@ int main(int argc, char **argv) {
             answer_p += local_sum[valid];
         }
 
-        run_time = omp_get_wtime() - start_time;    // Getting the end time for parallel version
-        cout << "P >>> Parallel Version Elapsed-time(s) = " << run_time << " s\n";
+        run_time = omp_get_wtime()*1000 - start_time;    // Getting the end time for parallel version
+        cout << "P >>> Parallel Version Elapsed-time(ms) = " << run_time << " ms\n";
     }
 
     if (cuda_ver) {
@@ -152,13 +158,15 @@ int main(int argc, char **argv) {
 
     if (seq_ver || veri_run) {
         cout << "S >>> Sequential Version running...\n";
-        answer = 0;GET_TIME(t0);
+        answer = 0;
+        GET_TIME(t0);
         for (int g = 0; g < N; ++g) {
             answer += (vector1[g] * vector2[g]);
-        }GET_TIME(t1);
+        }
+        GET_TIME(t1);
 
-        comp_time = Util::elapsed_time_sec(&t0, &t1, &sec, &nsec);
-        cout << "S >>> Sequential Version Elapsed-time(s) = " << comp_time << " s\n";
+        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "S >>> Sequential Version Elapsed-time(ms) = " << comp_time << " ms\n";
     }
 
 

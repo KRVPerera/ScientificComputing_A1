@@ -10,9 +10,11 @@
 #include <omp.h>
 
 #include <A1Config.h>
+#include <Util.h>
 
 using namespace std;
 
+#define CHUNKSIZE    100
 #define MAX_N 1800
 
 int main(int argc, char **argv) {
@@ -20,12 +22,10 @@ int main(int argc, char **argv) {
     bool seq_ver, p_ver, cuda_ver, veri_run;
     int c, num_threads = 2;
     struct timespec t0, t1;
-    float comp_time;
     unsigned long sec, nsec;
     int N = 600;
     opterr = 1;
     seq_ver = p_ver = cuda_ver = veri_run = false;
-
     while ((c = getopt(argc, argv, "scp:vn:")) != -1) {
         switch (c) {
             case 'p':
@@ -81,35 +81,45 @@ int main(int argc, char **argv) {
     long double answer_p = 0;
     cout << "Generating double Matrices of size " << N << "x" << N << "\n";
 
-    double **mat1 = new double*[N];
-    double **mat2 = new double*[N];
-    double **mat_ans = new double*[N];
+    double **mat1 = new double *[N];
+    double **mat2 = new double *[N];
+    double **mat_ans = new double *[N];
+    double **mat_p_ans = new double *[N];
     double local_sum[num_threads] = {};
 
-    for (int j = 0; j < N; ++j) {
-        mat1[j] = new double[N];
-        mat2[j] = new double[N];
-        mat_ans[j] = new double[N];
-        for (int i = 0; i < N; ++i) {
-            double val1 = random() % 2 + 1;
-            double val2 = random() % 2 + 1;
-            mat1[j][i] = val1;
-            mat2[j][i] = val2;
-            mat_ans[j][i] = 0;
+#pragma omp parallel
+    {
+
+#pragma omp for schedule (static)
+        for (int j = 0; j < N; ++j) {
+            mat1[j] = new double[N];
+            mat2[j] = new double[N];
+            mat_ans[j] = new double[N];
+            mat_p_ans[j] = new double[N];
+            for (int i = 0; i < N; ++i) {
+                double val1 = 1.0*random()/RAND_MAX + 1;
+                double val2 = 1.0*random()/RAND_MAX + 1;
+                mat1[j][i] = val1;
+                mat2[j][i] = val2;
+                mat_ans[j][i] = 0;
+                mat_p_ans[j][i] = 0;
+
+            }
         }
     }
 #else
 
     cout << "Generating float Matrices of size " << N << "x" << N << "\n";
 
-    float **mat1 = new float*[N];
-    float **mat2 = new float*[N];
-    float **mat_ans = new float*[N];
-    float **mat_p_ans = new float*[N];
+    float **mat1 = new float *[N];
+    float **mat2 = new float *[N];
+    float **mat_ans = new float *[N];
+    float **mat_p_ans = new float *[N];
     omp_set_num_threads(num_threads);
-    #pragma omp parallel
+
+#pragma omp parallel
     {
-    #pragma omp for
+#pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
             mat1[j] = new float[N];
             mat2[j] = new float[N];
@@ -140,22 +150,31 @@ int main(int argc, char **argv) {
         //opm
         start_time = omp_get_wtime();
 
-    //    omp_set_num_threads(num_threads);
+        //    omp_set_num_threads(num_threads);
         double loc_sum;
-        int i,j,k;
-        #pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
+        int i, j, k;
+#pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
         {
 
-            #pragma omp for schedule (static) reduction(+:loc_sum)
-            for ( i = 0; i < N; ++i) {
-                for ( j = 0; j < N; ++j) {
+            int id = omp_get_thread_num();
+            int num_threads = omp_get_num_threads();
+            int istart = floor((id * N) / num_threads);
+            int iend = floor(((id + 1) * N) / num_threads);
+            if (id == num_threads - 1) {
+                iend = N;
+            }
+
+#pragma omp for schedule (static) reduction(+:loc_sum)
+            for (i = 0; i < N; ++i) {
+                for (j = 0; j < N; ++j) {
                     loc_sum = 0;
-                    for ( k = 0; k < N; ++k) {
+                    for (k = 0; k < N; ++k) {
                         loc_sum = loc_sum + (mat1[i][k] * mat2[k][j]);
                     }
                     mat_p_ans[i][j] = loc_sum;
                 }
             }
+
 
         }
         run_time = omp_get_wtime() - start_time;    // Getting the end time for parallel version
@@ -169,8 +188,7 @@ int main(int argc, char **argv) {
     if (seq_ver || veri_run) {
         cout << "S >>> Sequential Version running...\n";
         double start_time, run_time;
-//        GET_TIME(t0);
-        start_time = omp_get_wtime();
+        GET_TIME(t0);
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
                 // mat_ans is already set to zero
@@ -179,10 +197,9 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        //GET_TIME(t1);
-        run_time = omp_get_wtime() - start_time;
-//        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
-        cout << "S >>> Sequential Version Elapsed-time(s) = " << run_time << " s\n";
+        GET_TIME(t1);
+        run_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "S >>> Sequential Version Elapsed-time(ms) = " << run_time << " ms\n";
     }
 
 
@@ -202,7 +219,7 @@ int main(int argc, char **argv) {
     }
 
     // Cleaning up
-    for (int l = N; l > 0; ) {
+    for (int l = N; l > 0;) {
         delete[] mat1[--l];
         delete[] mat2[l];
         delete[] mat_ans[l];

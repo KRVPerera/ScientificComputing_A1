@@ -9,7 +9,7 @@ set(CS4552_A1_VERSION_MINOR 9)
 
 # Assignment configuration
 set(MAX_THREADS 20)
-option(USE_DOUBLE "Use double values in computation" OFF)
+option(USE_DOUBLE "Use double values in computation" ON)
 configure_file("A1Config.h.in" "${PROJECT_BINARY_DIR}/A1Config.h")
 
 # adding include path to find the generated config file
