@@ -14,7 +14,6 @@
 
 using namespace std;
 
-#define CHUNKSIZE    100
 #define MAX_N 1800
 
 int main(int argc, char **argv) {
@@ -76,9 +75,6 @@ int main(int argc, char **argv) {
     srand(time(NULL));
 
 #ifdef USE_DOUBLE
-    long double answer = 0;
-    long double answer_c = 0;
-    long double answer_p = 0;
     cout << "Generating double Matrices of size " << N << "x" << N << "\n";
 
     double **mat1 = new double *[N];
@@ -126,8 +122,8 @@ int main(int argc, char **argv) {
             mat_ans[j] = new float[N];
             mat_p_ans[j] = new float[N];
             for (int i = 0; i < N; ++i) {
-                float val1 = random() % 2 + 1;
-                float val2 = random() % 2 + 1;
+                float val1 = 1.0*random()/RAND_MAX + 1;
+                float val2 = 1.0*random()/RAND_MAX + 1;
                 mat1[j][i] = val1;
                 mat2[j][i] = val2;
                 mat_ans[j][i] = 0;
