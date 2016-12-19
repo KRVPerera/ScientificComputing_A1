@@ -106,19 +106,23 @@ int main(int argc, char **argv) {
     float **mat2 = new float*[N];
     float **mat_ans = new float*[N];
     float **mat_p_ans = new float*[N];
-
-    for (int j = 0; j < N; ++j) {
-        mat1[j] = new float[N];
-        mat2[j] = new float[N];
-        mat_ans[j] = new float[N];
-        mat_p_ans[j] = new float[N];
-        for (int i = 0; i < N; ++i) {
-            float val1 = random() % 2 + 1;
-            float val2 = random() % 2 + 1;
-            mat1[j][i] = val1;
-            mat2[j][i] = val2;
-            mat_ans[j][i] = 0;
-            mat_p_ans[j][i] = 0;
+    omp_set_num_threads(num_threads);
+    #pragma omp parallel
+    {
+    #pragma omp for
+        for (int j = 0; j < N; ++j) {
+            mat1[j] = new float[N];
+            mat2[j] = new float[N];
+            mat_ans[j] = new float[N];
+            mat_p_ans[j] = new float[N];
+            for (int i = 0; i < N; ++i) {
+                float val1 = random() % 2 + 1;
+                float val2 = random() % 2 + 1;
+                mat1[j][i] = val1;
+                mat2[j][i] = val2;
+                mat_ans[j][i] = 0;
+                mat_p_ans[j][i] = 0;
+            }
         }
     }
 
