@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
         }
 
         run_time = omp_get_wtime() - start_time;    // Getting the end time for parallel version
-        cout << "P >>> Parallel Version Elapsed-time(ms) = " << run_time << " ms\n";
+        cout << "P >>> Parallel Version Elapsed-time(s) = " << run_time << " s\n";
     }
 
     if (cuda_ver) {
@@ -157,8 +157,8 @@ int main(int argc, char **argv) {
             answer += (vector1[g] * vector2[g]);
         }GET_TIME(t1);
 
-        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
-        cout << "S >>> Sequential Version Elapsed-time(ms) = " << comp_time << " ms\n";
+        comp_time = Util::elapsed_time_sec(&t0, &t1, &sec, &nsec);
+        cout << "S >>> Sequential Version Elapsed-time(s) = " << comp_time << " s\n";
     }
 
 

@@ -42,6 +42,17 @@ float Util::elapsed_time_nsec(struct timespec *begin, struct timespec *end,
     return (float) (*sec) * 1000000 + ((float) (*nsec));
 }
 
+float Util::elapsed_time_sec(struct timespec *begin, struct timespec *end,
+                              unsigned long *sec, unsigned long *nsec) {
+    if (end->tv_nsec < begin->tv_nsec) {
+        *nsec = 1000000000 - (begin->tv_nsec - end->tv_nsec);
+        *sec = end->tv_sec - begin->tv_sec - 1;
+    } else {
+        *nsec = end->tv_nsec - begin->tv_nsec;
+        *sec = end->tv_sec - begin->tv_sec;
+    }
+    return (float) (*sec)  + ((float) (*nsec))/1000000000.0;
+}
 
 float Util::elapsed_time_microsec(struct timespec *begin, struct timespec *end,
                                   unsigned long *sec, unsigned long *nsec) {

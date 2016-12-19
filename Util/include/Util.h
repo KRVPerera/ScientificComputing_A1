@@ -14,6 +14,7 @@
 class Util {
 public:
     float static Elapsed_time_msec(timespec *begin, timespec *end,unsigned long *sec,unsigned long *nsec);
+    float static elapsed_time_sec(timespec *begin, timespec *end,unsigned long *sec,unsigned long *nsec);
 
     static long RequiredSampleSize(float sd, float mean);
 
