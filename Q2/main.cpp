@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     {
         #pragma omp for
         for (int j = 0; j < N; ++j) {
-            float val = random() % 2 + 1;
+            float val = 1.0*random()/RAND_MAX + 1;
             vector1[j] = val;
             val = random();
             vector2[j] = val;
@@ -118,37 +118,45 @@ int main(int argc, char **argv) {
     if (p_ver) {
         cout << "P >>> Parallel Version running...\n";
         cout << "P >>> number of threads : " << num_threads << "\n";
-        double start_time, run_time;
-        //opm
-        start_time = omp_get_wtime()*1000;
-        //int id, istart, iend,i;
         //  #pragma omp parallel shared(local_sum, vector1, vector2, num_threads) private(id, istart, iend, i)
-        omp_set_num_threads(num_threads);
+
+        GET_TIME(t0);
+
+//        #pragma omp parallel num_threads(num_threads)
+//        {
+//            int id = omp_get_thread_num();
+//            int num_threads = omp_get_num_threads();
+//            int istart = floor((id * N) / num_threads);
+//            int iend = floor(((id + 1) * N) / num_threads);
+//            if(id == num_threads - 1){
+//                iend = N;
+//            }
+//            local_sum[id] = 0;
+//
+//            //TODO : Float version error
+//            for (int i = istart; i < iend; i++) {
+//                local_sum[id] = local_sum[id] + (vector1[i] * vector2[i]);
+//            }
+//        }
+//        for (int valid = 0; valid < num_threads; valid++) {
+//            answer_p += local_sum[valid];
+//        }
 
         #pragma omp parallel num_threads(num_threads)
         {
-            int id = omp_get_thread_num();
-            int num_threads = omp_get_num_threads();
-            int istart = floor((id * N) / num_threads);
-            int iend = floor(((id + 1) * N) / num_threads);
-            if(id == num_threads - 1){
-                iend = N;
-            }
-            local_sum[id] = 0;
-
             //TODO : Float version error
-//            #pragma omp for schedule(static)
-            for (int i = istart; i < iend; i++) {
-                local_sum[id] = local_sum[id] + (vector1[i] * vector2[i]);
+            double loc_sum = 0;
+            #pragma omp for schedule(static)
+            for (int i = 0; i < N; i++) {
+                loc_sum = loc_sum + (vector1[i] * vector2[i]);
             }
-        }
 
-        for (int valid = 0; valid < num_threads; valid++) {
-            answer_p += local_sum[valid];
+            #pragma omp atomic
+            answer_p = answer_p + loc_sum;
         }
-
-        run_time = omp_get_wtime()*1000 - start_time;    // Getting the end time for parallel version
-        cout << "P >>> Parallel Version Elapsed-time(ms) = " << run_time << " ms\n";
+        GET_TIME(t1);    // Getting the end time for parallel version
+        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "P >>> Parallel Version Elapsed-time(ms) = " << comp_time << " ms\n";
     }
 
     if (cuda_ver) {
@@ -172,12 +180,12 @@ int main(int argc, char **argv) {
 
     if (veri_run) {
         if (cuda_ver) {
-            if (fabs(answer - answer_c) > 0.01f) {
+            if (fabs(answer - answer_c) > 0.1) {
                 cout << "Values are different" << endl;
                 cout << "C >>> Cuda Version Answer: " << answer_c << "\n";
             }
         } else if (p_ver) {
-            if (fabs(answer - answer_p) > 0.01f) {
+            if (fabs(answer - answer_p) > 0.1) {
                 cout << "Values are different" << endl;
                 cout << "P >>> Parallel Version Answer: " << answer_p << "\n";
             }
