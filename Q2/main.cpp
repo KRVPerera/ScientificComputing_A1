@@ -75,9 +75,7 @@ int main(int argc, char **argv) {
     long double answer_p = 0;
     cout << "Generating double vectors of size " << N << "\n";
 
-//    double vector1[N];
-//    double vector2[N];
-    double local_sum[num_threads] = {};
+//    double local_sum[num_threads] = {};
     vector<double> vector1(N);
     vector<double> vector2(N);
 
@@ -96,7 +94,7 @@ int main(int argc, char **argv) {
 
     vector<float> vector1(N);
     vector<float> vector2(N);
-    float local_sum[num_threads] = {};
+//    float local_sum[num_threads] = {};
 
     #pragma omp parallel num_threads(num_threads)
     {
@@ -122,6 +120,7 @@ int main(int argc, char **argv) {
 
         GET_TIME(t0);
 
+//      Manual parallelalisation
 //        #pragma omp parallel num_threads(num_threads)
 //        {
 //            int id = omp_get_thread_num();
@@ -133,7 +132,6 @@ int main(int argc, char **argv) {
 //            }
 //            local_sum[id] = 0;
 //
-//            //TODO : Float version error
 //            for (int i = istart; i < iend; i++) {
 //                local_sum[id] = local_sum[id] + (vector1[i] * vector2[i]);
 //            }
@@ -144,16 +142,12 @@ int main(int argc, char **argv) {
 
         #pragma omp parallel num_threads(num_threads)
         {
-            //TODO : Float version error
-            double loc_sum = 0;
-            #pragma omp for schedule(static)
+            #pragma omp for schedule(static) reduction(+:answer_p)
             for (int i = 0; i < N; i++) {
-                loc_sum = loc_sum + (vector1[i] * vector2[i]);
+                answer_p = answer_p + (vector1[i] * vector2[i]);
             }
-
-            #pragma omp atomic
-            answer_p = answer_p + loc_sum;
         }
+
         GET_TIME(t1);    // Getting the end time for parallel version
         comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "P >>> Parallel Version Elapsed-time(ms) = " << comp_time << " ms\n";
