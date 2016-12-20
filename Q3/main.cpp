@@ -22,6 +22,7 @@ int main(int argc, char **argv) {
     int c, num_threads = 2;
     struct timespec t0, t1;
     unsigned long sec, nsec;
+    unsigned long  run_time;
     int N = 600;
     opterr = 1;
     seq_ver = p_ver = cuda_ver = veri_run = false;
@@ -81,7 +82,7 @@ int main(int argc, char **argv) {
     double **mat2 = new double *[N];
     double **mat_ans = new double *[N];
     double **mat_p_ans = new double *[N];
-    double local_sum[num_threads] = {};
+//    double local_sum[num_threads] = {};
 
 #pragma omp parallel
     {
@@ -142,23 +143,21 @@ int main(int argc, char **argv) {
     if (p_ver) {
         cout << "P >>> Parallel Version running...\n";
         cout << "P >>> number of threads : " << num_threads << "\n";
-        double start_time, run_time;
         //opm
-        start_time = omp_get_wtime();
-
+        GET_TIME(t0);
         //    omp_set_num_threads(num_threads);
         double loc_sum;
         int i, j, k;
 #pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
         {
 
-            int id = omp_get_thread_num();
-            int num_threads = omp_get_num_threads();
-            int istart = floor((id * N) / num_threads);
-            int iend = floor(((id + 1) * N) / num_threads);
-            if (id == num_threads - 1) {
-                iend = N;
-            }
+//            int id = omp_get_thread_num();
+//            int num_threads = omp_get_num_threads();
+//            int istart = floor((id * N) / num_threads);
+//            int iend = floor(((id + 1) * N) / num_threads);
+//            if (id == num_threads - 1) {
+//                iend = N;
+//            }
 
 #pragma omp for schedule (static) reduction(+:loc_sum)
             for (i = 0; i < N; ++i) {
@@ -173,8 +172,9 @@ int main(int argc, char **argv) {
 
 
         }
-        run_time = omp_get_wtime() - start_time;    // Getting the end time for parallel version
-        cout << "P >>> Parallel Version Elapsed-time(s) = " << run_time << " s\n";
+        GET_TIME(t1);
+        run_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "P >>> Parallel Version Elapsed-time(ms) = " << run_time << " ms\n";
     }
 
     if (cuda_ver) {
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 
     if (seq_ver || veri_run) {
         cout << "S >>> Sequential Version running...\n";
-        double start_time, run_time;
+
         GET_TIME(t0);
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
