@@ -20,6 +20,5 @@ endif (OPENMP_FOUND)
 
 set(CMAKE_CXX_STANDARD 11)
 
-#add_executable(CS4552_A1_Q2 ${SOURCE_FILES})
 cuda_add_executable(CS4552_A1_Q2 ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} Util -fopenmp)

@@ -151,13 +151,6 @@ int main(int argc, char **argv) {
 #pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
         {
 
-//            int id = omp_get_thread_num();
-//            int num_threads = omp_get_num_threads();
-//            int istart = floor((id * N) / num_threads);
-//            int iend = floor(((id + 1) * N) / num_threads);
-//            if (id == num_threads - 1) {
-//                iend = N;
-//            }
 
 #pragma omp for schedule (static) reduction(+:loc_sum)
             for (i = 0; i < N; ++i) {

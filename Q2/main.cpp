@@ -1,14 +1,30 @@
 
 #include <iostream>
+#include <stdio.h>
 #include <getopt.h>
 #include <unistd.h>
 #include <random>
 #include <algorithm>
 #include <omp.h>
+#include <cuda.h>
 #include "Util.h"
 #include <A1Config.h>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+//#include <thrust/host_vector.h>
+//#include <thrust/device_vector.h>
+
 
 using namespace std;
+
+
+__global__
+void dotPro(int n, float *vec1, float *vec2, float *vec3)
+{
+    int i = blockIdx.x*blockDim.x + threadIdx.x;
+    if (i < n) vec3[i] = vec1[i]*vec2[i];
+}
+
 
 //#define USE_DOUBLE
 int main(int argc, char **argv) {
@@ -71,20 +87,25 @@ int main(int argc, char **argv) {
 
 #ifdef USE_DOUBLE
     long double answer = 0;
-    long double answer_c = 0;
+    long double * answer_c = (long double *)malloc(sizeof(long double));
     long double answer_p = 0;
     cout << "Generating double vectors of size " << N << "\n";
 
 //    double local_sum[num_threads] = {};
-    vector<double> vector1(N);
-    vector<double> vector2(N);
+//    vector<double> h_vector1(N);
+    double * h_vector1 = (double * ) malloc(sizeof(double)*N);
+    double * h_vector2 = (double * ) malloc(sizeof(double)*N);
+    double * d_vector1, * d_vector2, *d_vector3, *h_vector3;
+//    size_t memSize = numBlocks * numThreadsPerBlock * sizeof(int);
+//    vector<double> h_vector1(N);
+//    vector<double> h_vector2(N);
 
     double tmp_val;
     for (int j = 0; j < N; ++j) {
         tmp_val = 1.0*random()/RAND_MAX + 1;
-        vector1[j] = tmp_val;
+        h_vector1[j] = tmp_val;
         tmp_val = 1.0*random()/RAND_MAX + 1;
-        vector2[j] = tmp_val;
+        h_vector2[j] = tmp_val;
     }
 #else
     float answer = 0;
@@ -92,8 +113,8 @@ int main(int argc, char **argv) {
     float answer_p = 0;
     cout << "Generating float vectors of size " << N << "\n";
 
-    vector<float> vector1(N);
-    vector<float> vector2(N);
+    vector<float> h_vector1(N);
+    vector<float> h_vector2(N);
 //    float local_sum[num_threads] = {};
 
     #pragma omp parallel num_threads(num_threads)
@@ -101,9 +122,9 @@ int main(int argc, char **argv) {
         #pragma omp for
         for (int j = 0; j < N; ++j) {
             float val = 1.0*random()/RAND_MAX + 1;
-            vector1[j] = val;
+            h_vector1[j] = val;
             val = random();
-            vector2[j] = val;
+            h_vector2[j] = val;
         }
     }
 #endif
@@ -116,7 +137,7 @@ int main(int argc, char **argv) {
     if (p_ver) {
         cout << "P >>> Parallel Version running...\n";
         cout << "P >>> number of threads : " << num_threads << "\n";
-        //  #pragma omp parallel shared(local_sum, vector1, vector2, num_threads) private(id, istart, iend, i)
+        //  #pragma omp parallel shared(local_sum, h_vector1, h_vector2, num_threads) private(id, istart, iend, i)
 
         GET_TIME(t0);
 
@@ -133,7 +154,7 @@ int main(int argc, char **argv) {
 //            local_sum[id] = 0;
 //
 //            for (int i = istart; i < iend; i++) {
-//                local_sum[id] = local_sum[id] + (vector1[i] * vector2[i]);
+//                local_sum[id] = local_sum[id] + (h_vector1[i] * h_vector2[i]);
 //            }
 //        }
 //        for (int valid = 0; valid < num_threads; valid++) {
@@ -144,7 +165,7 @@ int main(int argc, char **argv) {
         {
             #pragma omp for schedule(static) reduction(+:answer_p)
             for (int i = 0; i < N; i++) {
-                answer_p = answer_p + (vector1[i] * vector2[i]);
+                answer_p = answer_p + (h_vector1[i] * h_vector2[i]);
             }
         }
 
@@ -155,6 +176,24 @@ int main(int argc, char **argv) {
 
     if (cuda_ver) {
         cout << "C >>> Cuda version is running...\n";
+        int th_p_block = 256;
+        int blocks = (N+(th_p_block-1))/th_p_block;
+        GET_TIME(t0);
+        cudaMalloc(&d_vector1, N*sizeof(double));
+        cudaMalloc(&d_vector2, N*sizeof(double));
+        cudaMalloc(&d_vector3, N*sizeof(double));
+        h_vector3 = (double * ) malloc(sizeof(double)*N);
+        cudaMemcpy(d_vector1, h_vector1, N*sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_vector2, h_vector2, N*sizeof(double), cudaMemcpyHostToDevice);
+        dotPro<<<blocks,th_p_block>>>(N,d_vector1, d_vector2, d_vector3);
+        cudaMemcpy(h_vector3, d_vector3, N*sizeof(double), cudaMemcpyDeviceToHost);
+        answer_c = 0;
+        for (int i = 0; i < N; ++i) {
+            *answer_c += h_vector3[i];
+        }
+        GET_TIME(t1);
+        comp_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "P >>> Cuda Version Elapsed-time(ms) = " << comp_time << " ms\n";
         answer_c = 0;
     }
 
@@ -163,7 +202,7 @@ int main(int argc, char **argv) {
         answer = 0;
         GET_TIME(t0);
         for (int g = 0; g < N; ++g) {
-            answer += (vector1[g] * vector2[g]);
+            answer += (h_vector1[g] * h_vector2[g]);
         }
         GET_TIME(t1);
 
@@ -174,7 +213,7 @@ int main(int argc, char **argv) {
 
     if (veri_run) {
         if (cuda_ver) {
-            if (fabs(answer - answer_c) > 0.1) {
+            if (fabs(answer - *answer_c) > 0.1) {
                 cout << "Values are different" << endl;
                 cout << "C >>> Cuda Version Answer: " << answer_c << "\n";
             }
@@ -188,6 +227,8 @@ int main(int argc, char **argv) {
         cout << "Diff : " << fabs(answer - answer_p) << "\n";
     }
 
+    free(h_vector1);
+    free(h_vector2);
     std::cout << "Q2 Successful ran..! \n";
     return 0;
 
