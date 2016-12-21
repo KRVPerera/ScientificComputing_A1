@@ -16,6 +16,8 @@ configure_file("A1Config.h.in" "${PROJECT_BINARY_DIR}/A1Config.h")
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("include")
 
+
+
 # Large arrays, no need as now doing dynamic allocation
 set(GCC_FLAGS "-mcmodel=large -Wall -m64 -O3")
 

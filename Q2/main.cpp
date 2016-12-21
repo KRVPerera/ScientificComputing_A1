@@ -10,7 +10,7 @@
 
 using namespace std;
 
-
+//#define USE_DOUBLE
 int main(int argc, char **argv) {
     // Program states
     bool seq_ver, p_ver, cuda_ver, veri_run;

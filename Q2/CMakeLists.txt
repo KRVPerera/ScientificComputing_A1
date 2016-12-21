@@ -1,5 +1,6 @@
 project(CS4552_A1_Q2)
 cmake_minimum_required(VERSION 3.1)
+find_package(CUDA QUIET REQUIRED)
 
 set(GCC_FLAGS "-mcmodel=large -Wall -m64 -O3")
 set(SOURCE_FILES main.cpp)
@@ -19,5 +20,6 @@ endif (OPENMP_FOUND)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(CS4552_A1_Q2 ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} Util)
+#add_executable(CS4552_A1_Q2 ${SOURCE_FILES})
+cuda_add_executable(CS4552_A1_Q2 ${SOURCE_FILES})
+target_link_libraries(${PROJECT_NAME} Util -fopenmp)
