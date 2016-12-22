@@ -219,10 +219,7 @@ int main(int argc, char **argv) {
 		abort();
 	}
         cudaMemcpy(d_vector2, h_vector2, N * sizeof(double), cudaMemcpyHostToDevice);
-
         dotPro <<<blocks, th_p_block>>> (N, d_vector1, d_vector2, d_vector3);
-
-
         cudaMemcpy(h_vector3, d_vector3, N * sizeof(double), cudaMemcpyDeviceToHost);
         *answer_c = 0;
         for (int i = 0; i < N; ++i) {
@@ -246,7 +243,6 @@ int main(int argc, char **argv) {
                 printf("P >>> Parallel Version Answer: %Lf\n", answer_p);
             }
         }
-        printf("Values are different\n");
         printf("S >>> Serial Version Answer: %Lf\n", answer);
         printf("Diff : %Lf\n", fabs(answer - answer_p));
     }
