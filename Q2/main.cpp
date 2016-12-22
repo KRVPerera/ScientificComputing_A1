@@ -13,6 +13,18 @@
 #define MAX_THREADS 20
 #define pi(x) printf("%d\n",x);
 
+#define HANDLE_ERROR( err ) ( HandleError( err, __FILE__, __LINE__ ) )
+
+static void HandleError( cudaError_t err, const char *file, int line )
+{
+    if (err != cudaSuccess)
+    {
+        printf( "%s in %s at line %d\n", cudaGetErrorString( err ),
+                file, line );
+        exit( EXIT_FAILURE );
+    }
+}
+
 __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) vec3[i] = vec1[i] * vec2[i];
@@ -198,9 +210,9 @@ int main(int argc, char **argv) {
         int th_p_block = 256;
         int blocks = (N+255)/th_p_block;
         GET_TIME(t0);
-        cudaMalloc((void **) &d_vector1, N * sizeof(double));
-        cudaMalloc((void **) &d_vector2, N * sizeof(double));
-        cudaMalloc((void **) &d_vector3, N * sizeof(double));
+        HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_vector3, N * sizeof(double)));
 	cudaError_t err =  cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice);
 	if(err != cudaSuccess){
 		printf("Cuda memocopy not success...\n");

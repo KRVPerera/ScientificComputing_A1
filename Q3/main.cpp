@@ -1,16 +1,14 @@
 //
 // Created by krv on 12/16/16.
 //
-
+#include <cuda.h>
 #include<iostream>
 #include <getopt.h>
 #include <unistd.h>
 #include <random>
 #include <algorithm>
 #include <omp.h>
-
-#include <A1Config.h>
-#include <Util.h>
+#include "A1Config.h"
 
 using namespace std;
 
@@ -18,6 +16,19 @@ using namespace std;
 
 #define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
 				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
+
+float elapsed_time_msec(struct timespec *begin, struct timespec *end,
+                        unsigned long *sec, unsigned long *nsec) {
+    if (end->tv_nsec < begin->tv_nsec) {
+        *nsec = 1000000000 - (begin->tv_nsec - end->tv_nsec);
+        *sec = end->tv_sec - begin->tv_sec - 1;
+    } else {
+        *nsec = end->tv_nsec - begin->tv_nsec;
+        *sec = end->tv_sec - begin->tv_sec;
+    }
+    return (float) (*sec) * 1000 + ((float) (*nsec)) / 1000000.0;
+}
+
 
 int main(int argc, char **argv) {
     ios_base::sync_with_stdio(0);
@@ -151,11 +162,10 @@ int main(int argc, char **argv) {
         //    omp_set_num_threads(num_threads);
         double loc_sum;
         int i, j, k;
-#pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
+
+        #pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
         {
-
-
-#pragma omp for schedule (static) reduction(+:loc_sum)
+            #pragma omp for schedule (static) reduction(+:loc_sum)
             for (i = 0; i < N; ++i) {
                 for (j = 0; j < N; ++j) {
                     loc_sum = 0;
@@ -165,16 +175,19 @@ int main(int argc, char **argv) {
                     mat_p_ans[i][j] = loc_sum;
                 }
             }
-
-
         }
         GET_TIME(t1);
-        run_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "P >>> Parallel Version Elapsed-time(ms) = " << run_time << " ms\n";
     }
 
     if (cuda_ver) {
         cout << "C >>> Cuda version is running...\n";
+        GET_TIME(t0);
+
+        GET_TIME(t1);
+        run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "S >>> Cuda Version Elapsed-time(ms) = " << run_time << " ms\n";
     }
 
     if (seq_ver || veri_run) {
@@ -190,7 +203,7 @@ int main(int argc, char **argv) {
             }
         }
         GET_TIME(t1);
-        run_time = Util::elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "S >>> Sequential Version Elapsed-time(ms) = " << run_time << " ms\n";
     }
 
