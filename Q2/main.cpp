@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
     printf("Defined : USE_DOUBLE\n");
 #endif
     printf("Vector creation done\n");
-
+    sleep(1);
     if (p_ver) {
         printf("P >>> Parallel Version running...\n");
         printf("P >>> number of threads : %d\n", num_threads);
@@ -189,31 +189,33 @@ int main(int argc, char **argv) {
         comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         printf("P >>> Parallel Version Elapsed-time(ms) = %lf ms\n", comp_time);
     }
-
+    sleep(1);
     if (seq_ver || veri_run) {
         printf("S >>> Sequential Version running...\n");
-        answer = 0.0;GET_TIME(t0);
+        GET_TIME(t0);
+        answer = 0.0;
         for (int g = 0; g < N; ++g) {
             answer += (h_vector1[g] * h_vector2[g]);
-
         }GET_TIME(t1);
 
         comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         printf("S >>> Sequential Version Elapsed-time(ms) = %lf ms\n", comp_time);
     }
 
-
+    sleep(1);
     if (cuda_ver) {
         printf("C >>> Cuda version is running...\n")GET_TIME(t0);
         int th_p_block = 256;
-        int blocks = (N + 255) / th_p_block;GET_TIME(t0);
+        int blocks = (N + 255) / th_p_block;
+
+        GET_TIME(t0);
         HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, N * sizeof(double)));
-        cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice);
-        cudaMemcpy(d_vector2, h_vector2, N * sizeof(double), cudaMemcpyHostToDevice);
-        dotPro << < blocks, th_p_block >> > (N, d_vector1, d_vector2, d_vector3);
-        cudaMemcpy(h_vector3, d_vector3, N * sizeof(double), cudaMemcpyDeviceToHost);
+        HANDLE_ERROR(cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice));
+        HANDLE_ERROR(cudaMemcpy(d_vector2, h_vector2, N * sizeof(double), cudaMemcpyHostToDevice));
+        dotPro <<< blocks, th_p_block >>> (N, d_vector1, d_vector2, d_vector3);
+        HANDLE_ERROR(cudaMemcpy(h_vector3, d_vector3, N * sizeof(double), cudaMemcpyDeviceToHost));
         *answer_c = 0;
         for (int i = 0; i < N; ++i) {
             *answer_c += h_vector3[i];
