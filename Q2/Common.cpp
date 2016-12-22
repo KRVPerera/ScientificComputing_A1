@@ -1,12 +1,10 @@
 //
-// Created by krv on 12/12/16.
+// Created by krv on 12/22/16.
 //
 
-#include "../include/Util.h"
+#include "Common.h"
 
-using namespace std;
-
-float Util::elapsed_time_msec(struct timespec *begin, struct timespec *end,
+float elapsed_time_msec(struct timespec *begin, struct timespec *end,
                         unsigned long *sec, unsigned long *nsec) {
     if (end->tv_nsec < begin->tv_nsec) {
         *nsec = 1000000000 - (begin->tv_nsec - end->tv_nsec);

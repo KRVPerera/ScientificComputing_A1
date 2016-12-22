@@ -16,9 +16,6 @@ using namespace std;
 
 #define MAX_N 1800
 
-#define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
-				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
-
 int main(int argc, char **argv) {
     ios_base::sync_with_stdio(0);
     bool seq_ver, p_ver, cuda_ver, veri_run;
@@ -34,7 +31,7 @@ int main(int argc, char **argv) {
             case 'p':
                 p_ver = true;
                 try {
-                    num_threads = atoi(optarg);
+                    num_threads = stoi(optarg);
                 } catch (std::logic_error) {
                     cerr << "Invalid value for -p, set to 8" << endl;
                     num_threads = 2;
@@ -42,7 +39,7 @@ int main(int argc, char **argv) {
                 break;
             case 'n':
                 try {
-                    N = atoi(optarg);
+                    N = stoi(optarg);
                 } catch (std::logic_error) {
                     cerr << "Invalid value for -n, set to 1000" << endl;
                     N = 1000;

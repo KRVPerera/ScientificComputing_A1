@@ -1,6 +1,6 @@
 project(CS4552_A1)
 cmake_minimum_required(VERSION 3.1)
-set(CMAKE_CXX_STANDARD 11)
+find_package(CUDA QUIET REQUIRED)
 
 # Set version of the project
 set(CS4552_A1_VERSION_MAJOR 0)
@@ -15,8 +15,6 @@ configure_file("A1Config.h.in" "${PROJECT_BINARY_DIR}/A1Config.h")
 # adding include path to find the generated config file
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("include")
-
-
 
 # Large arrays, no need as now doing dynamic allocation
 set(GCC_FLAGS "-mcmodel=large -Wall -m64 -O3")

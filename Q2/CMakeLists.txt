@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.1)
 find_package(CUDA QUIET REQUIRED)
 
 set(GCC_FLAGS "-mcmodel=large -Wall -m64 -O3")
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES main.cpp q2_cuda.cpp q2_cuda.h)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_FLAGS}")
 
 if (USE_DOUBLE)
@@ -19,6 +19,8 @@ if (OPENMP_FOUND)
 endif (OPENMP_FOUND)
 
 set(CMAKE_CXX_STANDARD 11)
+#set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${CMAKE_CXX_FLAGS}")
 
 cuda_add_executable(CS4552_A1_Q2 ${SOURCE_FILES})
+#add_executable(CS4552_A1_Q2 ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} Util -fopenmp)

@@ -13,18 +13,18 @@
 
 class Util {
 public:
-    float static Elapsed_time_msec(timespec *begin, timespec *end,unsigned long *sec,unsigned long *nsec);
-    float static elapsed_time_sec(timespec *begin, timespec *end,unsigned long *sec,unsigned long *nsec);
-
-    static long RequiredSampleSize(float sd, float mean);
-
-    static float Mean(std::vector<float, std::allocator<float>> times);
-
-    static float elapsed_time_nsec(timespec *begin, timespec *end, unsigned long *sec, unsigned long *nsec);
-
-    static float StandardDeviation(std::vector<float> times);
-
-    static float elapsed_time_microsec(timespec *begin, timespec *end, unsigned long *sec, unsigned long *nsec);
+//    float static Elapsed_time_msec(timespec *begin, timespec *end,unsigned long *sec,unsigned long *nsec);
+//    float static elapsed_time_sec(timespec *begin, timespec *end,unsigned long *sec,unsigned long *nsec);
+//
+//    static long RequiredSampleSize(float sd, float mean);
+//
+//    static float Mean(std::vector<float, std::allocator<float>> times);
+//
+//    static float elapsed_time_nsec(timespec *begin, timespec *end, unsigned long *sec, unsigned long *nsec);
+//
+//    static float StandardDeviation(std::vector<float> times);
+//
+//    static float elapsed_time_microsec(timespec *begin, timespec *end, unsigned long *sec, unsigned long *nsec);
 
     static float elapsed_time_msec(timespec *begin, timespec *end, unsigned long *sec, unsigned long *nsec);
 };
