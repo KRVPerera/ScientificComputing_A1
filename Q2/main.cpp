@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <omp.h>
+#include <host_defines.h>
+#include <device_launch_parameters.h>
 #include "A1Config.h"
 
 #define MAX_THREADS 20
@@ -16,7 +18,7 @@ __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
     if (i < n) vec3[i] = vec1[i] * vec2[i];
 }
 
-float elapsed_iime_msec(struct timespec *begin, struct timespec *end,
+float elapsed_time_msec(struct timespec *begin, struct timespec *end,
                               unsigned long *sec, unsigned long *nsec) {
     if (end->tv_nsec < begin->tv_nsec) {
         *nsec = 1000000000 - (begin->tv_nsec - end->tv_nsec);
@@ -200,7 +202,7 @@ int main(int argc, char **argv) {
         cudaMalloc((void **) &d_vector2, N * sizeof(double));
         cudaMalloc((void **) &d_vector3, N * sizeof(double));
 	cudaError_t err =  cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice);
-	if(err != CUDA_SUCCESS){
+	if(err != cudaSuccess){
 		printf("Cuda memocopy not success...\n");
 		abort();
 	}
@@ -224,17 +226,17 @@ int main(int argc, char **argv) {
         if (cuda_ver) {
             if (fabs(answer - *answer_c) > 0.01) {
                 printf("Values are different\n");
-                printf("C >>> Cuda Version Answer: %lf\n", answer_c);
+                printf("C >>> Cuda Version Answer: %Lf\n", *answer_c);
             }
         } else if (p_ver) {
             if (fabs(answer - answer_p) > 0.01) {
                 printf("Values are different\n");
-                printf("P >>> Parallel Version Answer: %lf\n", answer_p);
+                printf("P >>> Parallel Version Answer: %Lf\n", answer_p);
             }
         }
         printf("Values are different\n");
-        printf("S >>> Serial Version Answer: %lf\n", answer);
-        printf("Diff : %lf\n", fabs(answer - answer_p));
+        printf("S >>> Serial Version Answer: %Lf\n", answer);
+        printf("Diff : %Lf\n", fabs(answer - answer_p));
     }
 
     free(h_vector1);

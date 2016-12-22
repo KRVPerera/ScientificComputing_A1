@@ -4,17 +4,17 @@ find_package(CUDA QUIET REQUIRED)
 
 set(SOURCE_FILES main.cpp)
 
+list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+add_definitions(-std=c++11)
+
 find_package(OpenMP)
 if (OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    list(APPEND CUDA_NVCC_FLAGS "-Xcompiler -fopenmp")
 endif (OPENMP_FOUND)
 
-
-list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
-list(APPEND CUDA_NVCC_FLAGS "-Xcompiler -fopenmp")
-set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-add_definitions(-std=c++11)
 
 set(CUDA_SEPARABLE_COMPILATION ON)
 include_directories("${PROJECT_BINARY_DIR}")
