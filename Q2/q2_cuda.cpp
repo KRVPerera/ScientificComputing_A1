@@ -26,18 +26,18 @@ float Run(int N, double * h_vector3, double * h_vector1, double * h_vector2){
     GET_TIME(t0);
 
     cudaMalloc((void **)&d_vector1, N*sizeof(double));
-    cudaMalloc((void **)&d_vector2, N*sizeof(double));
-    cudaMalloc((void **)&d_vector3, N*sizeof(double));
-    cudaMemcpy(d_vector1, h_vector1, N*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_vector2, h_vector2, N*sizeof(double), cudaMemcpyHostToDevice);
-
-    dotPro<<<blocks,th_p_block>>>(N,d_vector1, d_vector2, d_vector3);
-
-    cudaMemcpy(h_vector3, d_vector3, N*sizeof(double), cudaMemcpyDeviceToHost);
-    answer_c = 0;
-    for (int i = 0; i < N; ++i) {
-        *answer_c += h_vector3[i];
-    }
+//    cudaMalloc((void **)&d_vector2, N*sizeof(double));
+//    cudaMalloc((void **)&d_vector3, N*sizeof(double));
+//    cudaMemcpy(d_vector1, h_vector1, N*sizeof(double), cudaMemcpyHostToDevice);
+//    cudaMemcpy(d_vector2, h_vector2, N*sizeof(double), cudaMemcpyHostToDevice);
+//
+//    dotPro<<<blocks,th_p_block>>>(N,d_vector1, d_vector2, d_vector3);
+//
+//    cudaMemcpy(h_vector3, d_vector3, N*sizeof(double), cudaMemcpyDeviceToHost);
+//    answer_c = 0;
+//    for (int i = 0; i < N; ++i) {
+//        *answer_c += h_vector3[i];
+//    }
     GET_TIME(t1);
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
     return comp_time;

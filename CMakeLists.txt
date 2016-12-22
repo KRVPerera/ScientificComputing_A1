@@ -20,5 +20,4 @@ include_directories("include")
 set(GCC_FLAGS "-mcmodel=large -Wall -m64 -O3")
 
 add_subdirectory(Util)
-add_subdirectory(Q2)
 add_subdirectory(Q3)
