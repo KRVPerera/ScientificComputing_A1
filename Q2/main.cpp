@@ -13,15 +13,13 @@
 #define MAX_THREADS 20
 #define pi(x) printf("%d\n",x);
 
-#define HANDLE_ERROR( err ) ( HandleError( err, __FILE__, __LINE__ ) )
+#define HANDLE_ERROR(err) ( HandleError( err, __FILE__, __LINE__ ) )
 
-static void HandleError( cudaError_t err, const char *file, int line )
-{
-    if (err != cudaSuccess)
-    {
-        printf( "%s in %s at line %d\n", cudaGetErrorString( err ),
-                file, line );
-        exit( EXIT_FAILURE );
+static void HandleError(cudaError_t err, const char *file, int line) {
+    if (err != cudaSuccess) {
+        printf("%s in %s at line %d\n", cudaGetErrorString(err),
+               file, line);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -31,7 +29,7 @@ __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
 }
 
 float elapsed_time_msec(struct timespec *begin, struct timespec *end,
-                              unsigned long *sec, unsigned long *nsec) {
+                        unsigned long *sec, unsigned long *nsec) {
     if (end->tv_nsec < begin->tv_nsec) {
         *nsec = 1000000000 - (begin->tv_nsec - end->tv_nsec);
         *sec = end->tv_sec - begin->tv_sec - 1;
@@ -42,10 +40,11 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
     return (float) (*sec) * 1000 + ((float) (*nsec)) / 1000000.0;
 }
 
-#define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
-				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
+#define GET_TIME(x);    if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
+                { perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
 
 #define USE_DOUBLE
+
 int main(int argc, char **argv) {
     // Program states
     int seq_ver, p_ver, cuda_ver, veri_run;
@@ -111,7 +110,7 @@ int main(int argc, char **argv) {
     double *h_vector1 = (double *) malloc(sizeof(double) * N);
     double *h_vector2 = (double *) malloc(sizeof(double) * N);
     double *h_vector3 = (double *) malloc(sizeof(double) * N);
-    double * d_vector1, * d_vector2, *d_vector3;
+    double *d_vector1, *d_vector2, *d_vector3;
 
     double tmp_val;
     for (int j = 0; j < N; ++j) {
@@ -204,18 +203,16 @@ int main(int argc, char **argv) {
     }
 
 
-
     if (cuda_ver) {
         printf("C >>> Cuda version is running...\n")GET_TIME(t0);
         int th_p_block = 256;
-        int blocks = (N+255)/th_p_block;
-        GET_TIME(t0);
+        int blocks = (N + 255) / th_p_block;GET_TIME(t0);
         HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, N * sizeof(double)));
-	    cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice);
         cudaMemcpy(d_vector2, h_vector2, N * sizeof(double), cudaMemcpyHostToDevice);
-        dotPro <<<blocks, th_p_block>>> (N, d_vector1, d_vector2, d_vector3);
+        dotPro << < blocks, th_p_block >> > (N, d_vector1, d_vector2, d_vector3);
         cudaMemcpy(h_vector3, d_vector3, N * sizeof(double), cudaMemcpyDeviceToHost);
         *answer_c = 0;
         for (int i = 0; i < N; ++i) {
@@ -227,20 +224,26 @@ int main(int argc, char **argv) {
         printf("P >>> Cuda Version Elapsed-time(ms) = %lf ms\n", comp_time);
     }
 
-        if (veri_run) {
+    if (veri_run) {
+        printf("S >>> Serial Version Answer: %Lf\n", answer);
+
         if (cuda_ver) {
+            printf("C >>> Cuda Version Answer: %Lf\n", *answer_c);
             if (fabs(answer - *answer_c) > 0.01) {
                 printf("Values are different\n");
-                printf("C >>> Cuda Version Answer: %Lf\n", *answer_c);
+            }else{
+                printf("Values are similar\n");
             }
+            printf("Diff : %Lf\n", fabs(answer - *answer_c));
         } else if (p_ver) {
+            printf("P >>> Parallel Version Answer: %Lf\n", answer_p);
             if (fabs(answer - answer_p) > 0.01) {
                 printf("Values are different\n");
-                printf("P >>> Parallel Version Answer: %Lf\n", answer_p);
+            }else{
+                printf("Values are similar\n");
             }
+            printf("Diff : %Lf\n", fabs(answer - answer_p));
         }
-        printf("S >>> Serial Version Answer: %Lf\n", answer);
-        printf("Diff : %Lf\n", fabs(answer - answer_p));
     }
 
     free(h_vector1);
