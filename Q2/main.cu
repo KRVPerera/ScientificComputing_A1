@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
 
 #ifdef USE_DOUBLE
     long double answer = 0;
-    long doublex*answer_c = (long double *) malloc(sizeof(long double));
+    long double *answer_c = (long double *) malloc(sizeof(long double));
     *answer_c = 0.0;
     long double answer_p = 0;
     printf("Generating double vectors of size  %ld\n", N);
