@@ -8,8 +8,6 @@
 #include <time.h>
 #include <vector>
 
-#define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
-				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
 
 class Util {
 public:

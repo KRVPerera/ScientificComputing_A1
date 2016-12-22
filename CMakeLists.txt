@@ -17,7 +17,14 @@ include_directories("${PROJECT_BINARY_DIR}")
 include_directories("include")
 
 # Large arrays, no need as now doing dynamic allocation
-set(GCC_FLAGS "-mcmodel=large -Wall -m64 -O3")
 
-add_subdirectory(Util)
+list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
+list(APPEND CUDA_NVCC_FLAGS "-Xcompiler -fopenmp")
+set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+add_definitions(-std=c++11)
+
+set(CUDA_SEPARABLE_COMPILATION ON)
+
 add_subdirectory(Q3)
+add_subdirectory(Util)
+add_subdirectory(Q2)

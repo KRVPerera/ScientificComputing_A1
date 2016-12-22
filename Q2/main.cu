@@ -9,16 +9,14 @@
 #include "A1Config.h"
 
 #define MAX_THREADS 20
-#define print(x); printf("%d\n",x);
-#define USE_DOUBLE
+#define pi(x) printf("%d\n",x);
 
 __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) vec3[i] = vec1[i] * vec2[i];
 }
 
-
-float elapsed_time_msec(struct timespec *begin, struct timespec *end,
+float elapsed_iime_msec(struct timespec *begin, struct timespec *end,
                               unsigned long *sec, unsigned long *nsec) {
     if (end->tv_nsec < begin->tv_nsec) {
         *nsec = 1000000000 - (begin->tv_nsec - end->tv_nsec);
@@ -178,7 +176,7 @@ int main(int argc, char **argv) {
         comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         printf("P >>> Parallel Version Elapsed-time(ms) = %lf ms\n", comp_time);
     }
-	
+
     if (seq_ver || veri_run) {
         printf("S >>> Sequential Version running...\n");
         answer = 0.0;GET_TIME(t0);
@@ -209,7 +207,7 @@ int main(int argc, char **argv) {
         cudaMemcpy(d_vector2, h_vector2, N * sizeof(double), cudaMemcpyHostToDevice);
 
         dotPro <<<blocks, th_p_block>>> (N, d_vector1, d_vector2, d_vector3);
-	
+
 
         cudaMemcpy(h_vector3, d_vector3, N * sizeof(double), cudaMemcpyDeviceToHost);
         *answer_c = 0;
@@ -240,7 +238,12 @@ int main(int argc, char **argv) {
     }
 
     free(h_vector1);
+    cudaFree(d_vector1);
     free(h_vector2);
+    cudaFree(d_vector2);
+    free(h_vector3);
+    cudaFree(d_vector3);
+    free(answer_c);
     printf("Q2 Successful ran..! \n");
     return 0;
 

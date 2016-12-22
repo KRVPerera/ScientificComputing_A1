@@ -1,4 +1,4 @@
-objects = main.o q2_cuda.o Common.o
+objects = main.o
 
 all: $(objects)
 	nvcc -arch=sm_20 $(objects) -o app
