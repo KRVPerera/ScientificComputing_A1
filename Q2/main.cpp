@@ -45,7 +45,7 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
 #define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
 				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
 
-//#define USE_DOUBLE
+#define USE_DOUBLE
 int main(int argc, char **argv) {
     // Program states
     int seq_ver, p_ver, cuda_ver, veri_run;
@@ -213,11 +213,7 @@ int main(int argc, char **argv) {
         HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, N * sizeof(double)));
-	cudaError_t err =  cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice);
-	if(err != cudaSuccess){
-		printf("Cuda memocopy not success...\n");
-		abort();
-	}
+	    cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice);
         cudaMemcpy(d_vector2, h_vector2, N * sizeof(double), cudaMemcpyHostToDevice);
         dotPro <<<blocks, th_p_block>>> (N, d_vector1, d_vector2, d_vector3);
         cudaMemcpy(h_vector3, d_vector3, N * sizeof(double), cudaMemcpyDeviceToHost);
@@ -248,11 +244,11 @@ int main(int argc, char **argv) {
     }
 
     free(h_vector1);
-    cudaFree(d_vector1);
     free(h_vector2);
-    cudaFree(d_vector2);
     free(h_vector3);
     cudaFree(d_vector3);
+    cudaFree(d_vector1);
+    cudaFree(d_vector2);
     free(answer_c);
     printf("Q2 Successful ran..! \n");
     return 0;
