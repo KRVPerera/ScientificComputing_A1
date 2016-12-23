@@ -9,13 +9,25 @@
 #include <algorithm>
 #include <omp.h>
 #include "A1Config.h"
+#include <cuda_runtime.h>
 
 using namespace std;
 
 #define MAX_N 1800
+#define p_i(x) printf("%d\n",x);
+
+#define HANDLE_ERROR(err) ( HandleError( err, __FILE__, __LINE__))
 
 #define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
 				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
+
+static void HandleError(cudaError_t err, const char *file, int line){
+	if(err != cudaSuccess){
+		printf("%s in %s at line %d\n", cudaGetErrorString(err), 
+				file, line);
+		exit(EXIT_FAILURE);
+	}
+}
 
 float elapsed_time_msec(struct timespec *begin, struct timespec *end,
                         unsigned long *sec, unsigned long *nsec) {
@@ -29,6 +41,117 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
     return (float) (*sec) * 1000 + ((float) (*nsec)) / 1000000.0;
 }
 
+
+// inspired by the cuda samples matrix multiplication
+// and lecture slide 2 TILE_WIDTH == BLOCK_SIZE
+#ifdef USE_DOUBLE
+#template <int BLOCK_SIZE> __global__ void 
+matrixMultiKernel(double *C, double *A, double *B, int Width){
+	
+	// block indexes
+	int bx = blockIdx.x;
+	int by = blockIdx.y;
+
+	// thread indexes
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+
+	// int col = bx * TILE_WIDTH  + tx
+	// int row = by * TILE_WIDTH  + ty
+
+	// Dividing the matrices into sub sections
+	// Dividing the matrix A
+	int a_begin = Width * BLOCK_SIZE * by;
+	int a_end   = a_begin + Width - 1;
+	int a_step = BLOCK_SIZE;
+
+	// Dividing the matrix B
+	int b_begin = BLOCK_SIZE * bx;
+	int b_step = BLOCK_SIZE * Width;
+
+	double temp_c = 0;
+
+	// loop throught the submatrices
+	for(int a = a_begin, b = b_begin; a <= a_end; 
+			a += a_step, b += b_step)
+	{
+		// sub matrices
+		__shared_ double sub_a[BLOCK_SIZE][BLOCK_SIZE];
+		__shared_ double sub_b[BLOCK_SIZE][BLOCK_SIZE];
+		
+		sub_a[ty][tx] = A[ a + Width * ty + tx];
+		sub_b[ty][tx] = A[ b + Width * ty + tx];
+
+		__syncthreads();
+	}
+
+	// loop unroll may not work on cuda if compilation level -O3
+	// effects cuda code as wll in the assignment
+	// sub matrix multiplication
+	#pragma unroll
+	for(int k = 0; k < BLOCK_SIZE; ++k){
+		temp_c += sub_a[ty][k] * sub_b[k][tx];
+	}
+	// sync all the global threads running the computations
+	__syncthreads();
+	int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * BX;
+	C[c + Width * ty + tx ] = temp_c;
+}
+#else
+
+template <int BLOCK_SIZE> __global__ void 
+matrixMultiKernel(float *C, float *A, float *B, int Width){
+	
+	// block indexes
+	int bx = blockIdx.x;
+	int by = blockIdx.y;
+
+	// thread indexes
+	int tx = threadIdx.x;
+	int ty = threadIdx.y;
+
+	// int col = bx * TILE_WIDTH  + tx
+	// int row = by * TILE_WIDTH  + ty
+
+	// Dividing the matrices into sub sections
+	// Dividing the matrix A
+	int a_begin = Width * BLOCK_SIZE * by;
+	int a_end   = a_begin + Width - 1;
+	int a_step = BLOCK_SIZE;
+
+	// Dividing the matrix B
+	int b_begin = BLOCK_SIZE * bx;
+	int b_step = BLOCK_SIZE * Width;
+
+	float temp_c = 0;
+
+	// loop throught the submatrices
+	for(int a = a_begin, b = b_begin; a <= a_end; 
+			a += a_step, b += b_step)
+	{
+		// sub matrices
+		__shared_ float sub_a[BLOCK_SIZE][BLOCK_SIZE];
+		__shared_ float sub_b[BLOCK_SIZE][BLOCK_SIZE];
+		
+		sub_a[ty][tx] = A[ a + Width * ty + tx];
+		sub_b[ty][tx] = A[ b + Width * ty + tx];
+
+		__syncthreads();
+	}
+
+	// loop unroll may not work on cuda if compilation level -O3
+	// effects cuda code as wll in the assignment
+	// sub matrix multiplication
+	#pragma unroll
+	for(int k = 0; k < BLOCK_SIZE; ++k){
+		temp_c += sub_a[ty][k] * sub_b[k][tx];
+	}
+	// sync all the global threads running the computations
+	__syncthreads();
+	int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * BX;
+	C[c + Width * ty + tx ] = temp_c;
+}
+#endif
 
 int main(int argc, char **argv) {
     ios_base::sync_with_stdio(0);
