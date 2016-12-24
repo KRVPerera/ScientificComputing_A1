@@ -215,33 +215,58 @@ int main(int argc, char **argv) {
 #ifdef USE_DOUBLE
     cout << "Generating double Matrices of size " << N << "x" << N << "\n";
 
-    double **mat1 = new double *[N];
-    double **mat2 = new double *[N];
-    double **mat_ans = new double *[N];
-    double **mat_p_ans = new double *[N];
+//    double **mat1 = new double *[N];
+//    double **mat2 = new double *[N];
+//    double **mat_ans = new double *[N];
+//    double **mat_p_ans = new double *[N];
+//    double **mat_c_ans = new double *[N];
 //    double local_sum[num_threads] = {};
+    double *mat1 = new double [N*N];
+    double *mat2 = new double [N*N];
+    double *mat_ans = new double [N*N];
+    double *mat_p_ans = new double [N*N];
+    double *mat_c_ans = new double [N*N];
 
 #pragma omp parallel
     {
 
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
-            mat1[j] = new double[N];
-            mat2[j] = new double[N];
-            mat_ans[j] = new double[N];
-            mat_p_ans[j] = new double[N];
             for (int i = 0; i < N; ++i) {
                 double val1 = 1.0*random()/RAND_MAX + 1;
                 double val2 = 1.0*random()/RAND_MAX + 1;
-                mat1[j][i] = val1;
-                mat2[j][i] = val2;
-                mat_ans[j][i] = 0;
-                mat_p_ans[j][i] = 0;
-
+                mat1[j*N + i] = val1;
+                mat2[j*N + i] = val2;
+                mat_ans[j*N + i] = 0;
+                mat_p_ans[j*N + i] = 0;
+                mat_c_ans[j*N + i] = 0;
             }
         }
     }
 #else
+//
+//#pragma omp parallel
+//    {
+//
+//#pragma omp for schedule (static)
+//        for (int j = 0; j < N; ++j) {
+//            mat1[j] = new double[N];
+//            mat2[j] = new double[N];
+//            mat_ans[j] = new double[N];
+//            mat_p_ans[j] = new double[N];
+//            mat_c_ans[j] = new double[N];
+//            for (int i = 0; i < N; ++i) {
+//                double val1 = 1.0*random()/RAND_MAX + 1;
+//                double val2 = 1.0*random()/RAND_MAX + 1;
+//                mat1[j][i] = val1;
+//                mat2[j][i] = val2;
+//                mat_ans[j][i] = 0;
+//                mat_p_ans[j][i] = 0;
+//                mat_c_ans[j][i] = 0;
+//            }
+//        }
+//    }
+//#else
 
     cout << "Generating float Matrices of size " << N << "x" << N << "\n";
 
@@ -249,6 +274,7 @@ int main(int argc, char **argv) {
     float **mat2 = new float *[N];
     float **mat_ans = new float *[N];
     float **mat_p_ans = new float *[N];
+    float **mat_c_ans = new float *[N];
     omp_set_num_threads(num_threads);
 
 #pragma omp parallel
@@ -259,6 +285,7 @@ int main(int argc, char **argv) {
             mat2[j] = new float[N];
             mat_ans[j] = new float[N];
             mat_p_ans[j] = new float[N];
+            mat_c_ans[j] = new float[N];
             for (int i = 0; i < N; ++i) {
                 float val1 = 1.0*random()/RAND_MAX + 1;
                 float val2 = 1.0*random()/RAND_MAX + 1;
@@ -266,6 +293,7 @@ int main(int argc, char **argv) {
                 mat2[j][i] = val2;
                 mat_ans[j][i] = 0;
                 mat_p_ans[j][i] = 0;
+                mat_c_ans[j][i] = 0;
             }
         }
     }
@@ -293,9 +321,9 @@ int main(int argc, char **argv) {
                 for (j = 0; j < N; ++j) {
                     loc_sum = 0;
                     for (k = 0; k < N; ++k) {
-                        loc_sum = loc_sum + (mat1[i][k] * mat2[k][j]);
+                        loc_sum = loc_sum + (mat1[i*N + k] * mat2[k*N + j]);
                     }
-                    mat_p_ans[i][j] = loc_sum;
+                    mat_p_ans[i*N + j] = loc_sum;
                 }
             }
         }
@@ -321,7 +349,7 @@ int main(int argc, char **argv) {
             for (int j = 0; j < N; ++j) {
                 // mat_ans is already set to zero
                 for (int k = 0; k < N; ++k) {
-                    mat_ans[i][j] += mat1[i][k] * mat2[k][j];
+                    mat_ans[i*N+j] += mat1[i*N + k] * mat2[k*N + j];
                 }
             }
         }
@@ -339,7 +367,7 @@ int main(int argc, char **argv) {
 
             for (int i = 0; i < N; ++i) {
                 for (int j = 0; j < N; ++j) {
-                    diff += fabs(mat_p_ans[i][j] - mat_ans[i][j]);
+                    diff += fabs(mat_p_ans[i*N+j] - mat_ans[i*N+j]);
                 }
             }
         }
@@ -347,14 +375,12 @@ int main(int argc, char **argv) {
     }
 
     // Cleaning up
-    for (int l = N; l > 0;) {
-        delete[] mat1[--l];
-        delete[] mat2[l];
-        delete[] mat_ans[l];
-    }
+
     delete[] mat1;
     delete[] mat2;
     delete[] mat_ans;
+    delete[] mat_p_ans;
+    delete[] mat_c_ans;
 
     std::cout << "Q3 Successfully ran\n";
     return 0;
