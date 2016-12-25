@@ -39,13 +39,13 @@ __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
 
 	cache[cacheIdx] = temp;
 
-	// reduction 
+	// reduction
 	int i = blockDim.x/2; // need the num threads to be a power of two (256 is okay)
 	while( i != 0 ){
 		if(cacheIdx < i){
 			cache[cacheIdx] += cache[cacheIdx + i ];
 		}
-	
+
 		__syncthreads(); //sync threads in the current block
 		i = i/2;
 	}
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
     double *h_vector1 = (double *) malloc(sizeof(double) * N);
     double *h_vector2 = (double *) malloc(sizeof(double) * N);
     double * h_vector3 = (double *) malloc(sizeof(double)*blocks);
-    double * d_vector3; 
+    double * d_vector3;
     double *d_vector1, *d_vector2;
 
     double tmp_val;
@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
         printf("S >>> Sequential Version running...\n");
         GET_TIME(t0);
         answer = 0.0;
-	
+
         for (int g = 0; g < N; ++g) {
             answer += (h_vector1[g] * h_vector2[g]);
         }GET_TIME(t1);
@@ -235,21 +235,23 @@ int main(int argc, char **argv) {
         printf("C >>> Cuda version is running...\n")GET_TIME(t0);
         GET_TIME(t0);
         // memory allocation on device
-	HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
+        #ifdef USE_DOUBLE
+	      HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, blocks * sizeof(double)));
-
-	// copy host memory to device
+      	// copy host memory to device
         HANDLE_ERROR(cudaMemcpy(d_vector1, h_vector1, N * sizeof(double), cudaMemcpyHostToDevice));
         HANDLE_ERROR(cudaMemcpy(d_vector2, h_vector2, N * sizeof(double), cudaMemcpyHostToDevice));
 
-	// kerneal code
+	      // kerneal code
         dotPro <<< blocks, th_p_block >>> (N, d_vector1, d_vector2, d_vector3);
 
-	// copy device memory back to host memory
+	      // copy device memory back to host memory
         HANDLE_ERROR(cudaMemcpy(h_vector3, d_vector3, blocks * sizeof(double), cudaMemcpyDeviceToHost));
-
-	// serial portions summation
+#else
+      fprintf(stderr, "Float processing of cuda not yet implemented\n");
+#enfif
+	       // serial portions summation
         answer_c = 0;
         for (int i = 0; i < blocks; ++i) {
             answer_c += h_vector3[i];

@@ -99,8 +99,7 @@ matrixMultiKernel(double *C, double *A, double *B, int Width){
 }
 #else
 
-template <int BLOCK_SIZE> __global__ void 
-matrixMultiKernel(float *C, float *A, float *B, int Width){
+template <int BLOCK_SIZE> __global__ void matrixMultiKernel(float *C, float *A, float *B, int Width){
 	
 	// block indexes
 	int bx = blockIdx.x;
@@ -151,6 +150,7 @@ matrixMultiKernel(float *C, float *A, float *B, int Width){
 	int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * BX;
 	C[c + Width * ty + tx ] = temp_c;
 }
+
 #endif
 
 int main(int argc, char **argv) {
@@ -227,6 +227,10 @@ int main(int argc, char **argv) {
     double *mat_p_ans = new double [N*N];
     double *mat_c_ans = new double [N*N];
 
+    // cuda device pinters
+    double *d_mat1,d_mat2, d_mat_c_ans;
+
+
 #pragma omp parallel
     {
 
@@ -244,56 +248,30 @@ int main(int argc, char **argv) {
         }
     }
 #else
-//
-//#pragma omp parallel
-//    {
-//
-//#pragma omp for schedule (static)
-//        for (int j = 0; j < N; ++j) {
-//            mat1[j] = new double[N];
-//            mat2[j] = new double[N];
-//            mat_ans[j] = new double[N];
-//            mat_p_ans[j] = new double[N];
-//            mat_c_ans[j] = new double[N];
-//            for (int i = 0; i < N; ++i) {
-//                double val1 = 1.0*random()/RAND_MAX + 1;
-//                double val2 = 1.0*random()/RAND_MAX + 1;
-//                mat1[j][i] = val1;
-//                mat2[j][i] = val2;
-//                mat_ans[j][i] = 0;
-//                mat_p_ans[j][i] = 0;
-//                mat_c_ans[j][i] = 0;
-//            }
-//        }
-//    }
-//#else
+
 
     cout << "Generating float Matrices of size " << N << "x" << N << "\n";
 
-    float **mat1 = new float *[N];
-    float **mat2 = new float *[N];
-    float **mat_ans = new float *[N];
-    float **mat_p_ans = new float *[N];
-    float **mat_c_ans = new float *[N];
-    omp_set_num_threads(num_threads);
-
+    float *mat1 = new float [N*N];
+    float *mat2 = new float [N*N];
+    float *mat_ans = new float [N*N];
+    float *mat_p_ans = new float [N*N];
+    float *mat_c_ans = new float [N*N];
+     // cuda device pinters
+    float *d_mat1,d_mat2, d_mat_c_ans;
+     omp_set_num_threads(num_threads);
 #pragma omp parallel
     {
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
-            mat1[j] = new float[N];
-            mat2[j] = new float[N];
-            mat_ans[j] = new float[N];
-            mat_p_ans[j] = new float[N];
-            mat_c_ans[j] = new float[N];
             for (int i = 0; i < N; ++i) {
                 float val1 = 1.0*random()/RAND_MAX + 1;
                 float val2 = 1.0*random()/RAND_MAX + 1;
-                mat1[j][i] = val1;
-                mat2[j][i] = val2;
-                mat_ans[j][i] = 0;
-                mat_p_ans[j][i] = 0;
-                mat_c_ans[j][i] = 0;
+                mat1[j*N + i] = val1;
+                mat2[j*N + i] = val2;
+                mat_ans[j*N + i] = 0;
+                mat_p_ans[j*N + i] = 0;
+                mat_c_ans[j*N + i] = 0;
             }
         }
     }
@@ -334,11 +312,24 @@ int main(int argc, char **argv) {
 
     if (cuda_ver) {
         cout << "C >>> Cuda version is running...\n";
+        int block_size = 16;
+        dim3 threads(block_size, block_size);
+        dim3 grid(N / threads.x, N / threads.y);
         GET_TIME(t0);
 
+        //allocating memory on the device
+        HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(double)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(double)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_mat_c_ans, N * N * sizeof(double)));
+        // copy host memory to device
+        HANDLE_ERROR(cudaMemcpy(d_mat1, mat1, N * N * sizeof(double), cudaMemcpyHostToDevice));
+        HANDLE_ERROR(cudaMemcpy(d_mat2, mat2, N * N * sizeof(double), cudaMemcpyHostToDevice));
+        matrixMulCUDA<16><<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
+        HANDLE_ERROR(cudaMemcpy(d_mat_c_ans, d_mat_c_ans, N * N * sizeof(double), cudaMemcpyDeviceToHost));
         GET_TIME(t1);
         run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "S >>> Cuda Version Elapsed-time(ms) = " << run_time << " ms\n";
+
     }
 
     if (seq_ver || veri_run) {
@@ -381,7 +372,9 @@ int main(int argc, char **argv) {
     delete[] mat_ans;
     delete[] mat_p_ans;
     delete[] mat_c_ans;
-
+    cudaFree(d_mat1);
+    cudaFree(d_mat2);
+    cudaFree(d_mat_c_ans);
     std::cout << "Q3 Successfully ran\n";
     return 0;
 }
