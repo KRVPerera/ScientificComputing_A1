@@ -5,7 +5,7 @@
 #include<iostream>
 #include <getopt.h>
 #include <unistd.h>
-#include <random>
+//#include <random>
 #include <algorithm>
 #include <omp.h>
 #include "A1Config.h"
@@ -44,10 +44,11 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
 
 // inspired by the cuda samples matrix multiplication
 // and lecture slide 2 TILE_WIDTH == BLOCK_SIZE
+
 #ifdef USE_DOUBLE
-#template <int BLOCK_SIZE> __global__ void 
+__global__ void 
 matrixMultiKernel(double *C, double *A, double *B, int Width){
-	
+	const int BLOCK_SIZE = 16;	
 	// block indexes
 	int bx = blockIdx.x;
 	int by = blockIdx.y;
@@ -71,13 +72,13 @@ matrixMultiKernel(double *C, double *A, double *B, int Width){
 
 	double temp_c = 0;
 
+		// sub matrices
+		__shared__ double sub_a[BLOCK_SIZE][BLOCK_SIZE];
+		__shared__ double sub_b[BLOCK_SIZE][BLOCK_SIZE];
 	// loop throught the submatrices
 	for(int a = a_begin, b = b_begin; a <= a_end; 
 			a += a_step, b += b_step)
 	{
-		// sub matrices
-		__shared_ double sub_a[BLOCK_SIZE][BLOCK_SIZE];
-		__shared_ double sub_b[BLOCK_SIZE][BLOCK_SIZE];
 		
 		sub_a[ty][tx] = A[ a + Width * ty + tx];
 		sub_b[ty][tx] = A[ b + Width * ty + tx];
@@ -94,13 +95,14 @@ matrixMultiKernel(double *C, double *A, double *B, int Width){
 	}
 	// sync all the global threads running the computations
 	__syncthreads();
-	int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * BX;
+	int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * bx;
 	C[c + Width * ty + tx ] = temp_c;
 }
 #else
 
-template <int BLOCK_SIZE> __global__ void matrixMultiKernel(float *C, float *A, float *B, int Width){
+__global__ void matrixMultiKernel(float *C, float *A, float *B, int Width){
 	
+	int BLOCK_SIZE = 16;	
 	// block indexes
 	int bx = blockIdx.x;
 	int by = blockIdx.y;
@@ -237,8 +239,8 @@ int main(int argc, char **argv) {
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
             for (int i = 0; i < N; ++i) {
-                double val1 = 1.0*random()/RAND_MAX + 1;
-                double val2 = 1.0*random()/RAND_MAX + 1;
+                double val1 = 1.0*rand()/RAND_MAX + 1;
+                double val2 = 1.0*rand()/RAND_MAX + 1;
                 mat1[j*N + i] = val1;
                 mat2[j*N + i] = val2;
                 mat_ans[j*N + i] = 0;
@@ -265,8 +267,8 @@ int main(int argc, char **argv) {
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
             for (int i = 0; i < N; ++i) {
-                float val1 = 1.0*random()/RAND_MAX + 1;
-                float val2 = 1.0*random()/RAND_MAX + 1;
+                float val1 = 1.0*rand()/RAND_MAX + 1;
+                float val2 = 1.0*rand()/RAND_MAX + 1;
                 mat1[j*N + i] = val1;
                 mat2[j*N + i] = val2;
                 mat_ans[j*N + i] = 0;
@@ -322,9 +324,9 @@ int main(int argc, char **argv) {
         HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat_c_ans, N * N * sizeof(double)));
         // copy host memory to device
-        HANDLE_ERROR(cudaMemcpy(d_mat1, mat1, N * N * sizeof(double), cudaMemcpyHostToDevice));
-        HANDLE_ERROR(cudaMemcpy(d_mat2, mat2, N * N * sizeof(double), cudaMemcpyHostToDevice));
-        matrixMulCUDA<16><<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
+        HANDLE_ERROR(cudaMemcpy((void **)d_mat1,(void **) mat1, N * N * sizeof(double), cudaMemcpyHostToDevice));
+        HANDLE_ERROR(cudaMemcpy((void **)d_mat2,(void **) mat2, N * N * sizeof(double), cudaMemcpyHostToDevice));
+        matrixMultiKernel<<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
         HANDLE_ERROR(cudaMemcpy(d_mat_c_ans, d_mat_c_ans, N * N * sizeof(double), cudaMemcpyDeviceToHost));
         GET_TIME(t1);
         run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
