@@ -6,6 +6,7 @@ include_directories("${PROJECT_BINARY_DIR}")
 include_directories("include")
 
 list(APPEND CUDA_NVCC_FLAGS -x cu)
+list(APPEND CUDA_NVCC_FLAGS -std=c++11)
 
 find_package (OpenMP)
 if(OPENMP_FOUND)
