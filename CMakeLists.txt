@@ -15,12 +15,7 @@ configure_file("A1Config.h.in" "${PROJECT_BINARY_DIR}/A1Config.h")
 ## adding include path to find the generated config file
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("include")
-#
-## Large arrays, no need as now doing dynamic allocation
-#
-
-
 
 add_subdirectory(Q1)
-##add_subdirectory(Util)
 add_subdirectory(Q2)
+add_subdirectory(Q3)
