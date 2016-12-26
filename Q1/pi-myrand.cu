@@ -14,6 +14,13 @@
 #define THREADS 256
 #define PI 3.1415926535  // known value of pi
 
+float elapsed_time_msec(struct timespec *begin, struct timespec *end,
+                        unsigned long *sec, unsigned long *nsec);
+
+
+#define GET_TIME(x);    if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
+                { perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
+
 __device__ float my_rand(unsigned int *seed) {
 	unsigned long a = 16807;  // constants for random number generator
 	unsigned long m = 2147483647;   // 2^31 - 1
@@ -53,7 +60,9 @@ float host_monte_carlo(long trials) {
 }
 
 int main (int argc, char *argv[]) {
-	clock_t start, stop;
+    struct timespec t0, t1;
+    float comp_time;
+    unsigned long sec, nsec;
 	float host[BLOCKS * THREADS];
 	float *dev;
 
@@ -61,7 +70,7 @@ int main (int argc, char *argv[]) {
 	printf("# of trials per thread = %d, # of blocks = %d, # of threads/block = %d.\n", TRIALS_PER_THREAD,
 BLOCKS, THREADS);
 
-	start = clock();
+    GET_TIME(t0);
 
 	cudaMalloc((void **) &dev, BLOCKS * THREADS * sizeof(float)); // allocate device mem. for counts
 
@@ -76,17 +85,32 @@ BLOCKS, THREADS);
 
 	pi_gpu /= (BLOCKS * THREADS);
 
-	stop = clock();
+    GET_TIME(t1);
 
-	printf("GPU pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
+    comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
+    printf("GPU pi calculated in %f s.\n", comp_time);
 
-	start = clock();
+    GET_TIME(t0);
 	float pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
-	stop = clock();
-	printf("CPU pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
+    GET_TIME(t1);
+    comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
+	printf("CPU pi calculated in %f s.\n", comp_time);
 
 	printf("CUDA estimate of PI = %f [error of %f]\n", pi_gpu, pi_gpu - PI);
 	printf("CPU estimate of PI = %f [error of %f]\n", pi_cpu, pi_cpu - PI);
 	
 	return 0;
+}
+
+
+float elapsed_time_msec(struct timespec *begin, struct timespec *end,
+                        unsigned long *sec, unsigned long *nsec) {
+    if (end->tv_nsec < begin->tv_nsec) {
+        *nsec = 1000000000 - (begin->tv_nsec - end->tv_nsec);
+        *sec = end->tv_sec - begin->tv_sec - 1;
+    } else {
+        *nsec = end->tv_nsec - begin->tv_nsec;
+        *sec = end->tv_sec - begin->tv_sec;
+    }
+    return (float) (*sec) * 1000 + ((float) (*nsec)) / 1000000.0;
 }
