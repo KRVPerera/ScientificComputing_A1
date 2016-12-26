@@ -14,8 +14,8 @@
 #define pi(x) printf("%d\n",x);
 #define HANDLE_ERROR(err) ( HandleError( err, __FILE__, __LINE__ ) )
 
-#define th_p_block 256
-#define blocks  (N + th_p_block-1) / th_p_block
+#define th_p_block 128
+#define blocks  (N+th_p_block-1)/th_p_block
 
 static void HandleError(cudaError_t err, const char *file, int line) {
     if (err != cudaSuccess) {
@@ -25,12 +25,45 @@ static void HandleError(cudaError_t err, const char *file, int line) {
     }
 }
 
-__global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
+__global__ void dotPro_F(long n, float *vec1, float *vec2, float *vec3) {
+
+    __shared__ float cache[th_p_block];
+    unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int cacheIdx =  threadIdx.x;
+    float temp = 0;
+    while(tid < n)
+    {
+        temp += vec1[tid] * vec2[tid];
+        tid += blockDim.x * gridDim.x;
+    }
+
+    cache[cacheIdx] = temp;
+    __syncthreads();
+
+    // reduction
+    unsigned i = blockDim.x/2; // need the num threads to be a power of two (256 is okay)
+    while( i != 0 ){
+        if(cacheIdx < i){
+            cache[cacheIdx] += cache[cacheIdx + i ];
+        }
+
+        __syncthreads(); //sync threads in the current block
+        // power of two needed here
+        i = i/2;
+    }
+    if(cacheIdx == 0){
+        vec3[blockIdx.x] = cache[0];
+    }
+//    if (tid < n) vec3[i] = vec1[i] * vec2[i];
+}
+
+
+__global__ void dotPro(long int n, double *vec1, double *vec2, double *vec3) {
 
     __shared__ double cache[th_p_block];
-	int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
 	const unsigned int cacheIdx =  threadIdx.x;
-	float temp = 0;
+	double temp = 0;
 	while(tid < n)
 	{
 		temp += vec1[tid] * vec2[tid];
@@ -41,7 +74,7 @@ __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
     __syncthreads();
 
 	// reduction
-	int i = blockDim.x/2; // need the num threads to be a power of two (256 is okay)
+    unsigned i = blockDim.x/2; // need the num threads to be a power of two (256 is okay)
 	while( i != 0 ){
 		if(cacheIdx < i){
 			cache[cacheIdx] += cache[cacheIdx + i ];
@@ -130,7 +163,7 @@ int main(int argc, char **argv) {
 
 #ifdef USE_DOUBLE
     long double answer = 0;
-    long double answer_c;// = (long double *) malloc(sizeof(long double));
+    long double answer_c = 0;// = (long double *) malloc(sizeof(long double));
     long double answer_p = 0;
     printf("Generating double vectors of size  %ld\n", N);
 
@@ -159,7 +192,7 @@ int main(int argc, char **argv) {
 
     float * h_vector1 = (float * ) malloc(sizeof(float)*N);
     float * h_vector2 = (float * ) malloc(sizeof(float)*N);
-    float * h_vector3 = (float * ) malloc(sizeof(float)*N);
+    float * h_vector3 = (float * ) malloc(sizeof(float)*blocks);
     float * d_vector1, * d_vector2, *d_vector3;
 
 #pragma omp parallel num_threads(num_threads)
@@ -218,7 +251,7 @@ int main(int argc, char **argv) {
         GET_TIME(t0);
         // memory allocation on device
         #ifdef USE_DOUBLE
-	      HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, blocks * sizeof(double)));
       	// copy host memory to device
@@ -231,7 +264,18 @@ int main(int argc, char **argv) {
 	      // copy device memory back to host memory
         HANDLE_ERROR(cudaMemcpy(h_vector3, d_vector3, blocks * sizeof(double), cudaMemcpyDeviceToHost));
 #else
-      fprintf(stderr, "Float processing of cuda not yet implemented\n");
+        HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(float)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(float)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_vector3, blocks * sizeof(float)));
+        // copy host memory to device
+        HANDLE_ERROR(cudaMemcpy(d_vector1, h_vector1, N * sizeof(float), cudaMemcpyHostToDevice));
+        HANDLE_ERROR(cudaMemcpy(d_vector2, h_vector2, N * sizeof(float), cudaMemcpyHostToDevice));
+
+        // kerneal code
+        dotPro_F <<< blocks, th_p_block >>> (N, d_vector1, d_vector2, d_vector3);
+
+        // copy device memory back to host memory
+        HANDLE_ERROR(cudaMemcpy(h_vector3, d_vector3, blocks * sizeof(float), cudaMemcpyDeviceToHost));
 #endif
 	       // serial portions summation
         answer_c = 0;
@@ -246,6 +290,7 @@ int main(int argc, char **argv) {
 	free(h_vector3);
     }
 
+#ifdef USE_DOUBLE
     if (veri_run) {
         printf("S >>> Serial Version Answer: %Lf\n", answer);
 
@@ -267,7 +312,29 @@ int main(int argc, char **argv) {
             printf("Diff : %Lf\n", fabs(answer - answer_p));
         }
     }
+#else
+    if (veri_run) {
+        printf("S >>> Serial Version Answer: %f\n", answer);
 
+        if (cuda_ver) {
+            printf("C >>> Cuda Version Answer: %f\n", answer_c);
+            if (fabs(answer - answer_c) > 0.01) {
+                printf("Values are different\n");
+            }else{
+                printf("Values are similar\n");
+            }
+            printf("Diff : %f\n", fabs(answer - answer_c));
+        } else if (p_ver) {
+            printf("P >>> Parallel Version Answer: %f\n", answer_p);
+            if (fabs(answer - answer_p) > 0.01) {
+                printf("Values are different\n");
+            }else{
+                printf("Values are similar\n");
+            }
+            printf("Diff : %f\n", fabs(answer - answer_p));
+        }
+    }
+#endif
     free(h_vector1);
     free(h_vector2);
     cudaFree(d_vector1);
