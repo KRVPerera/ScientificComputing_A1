@@ -14,7 +14,7 @@
 #define pi(x) printf("%d\n",x);
 #define HANDLE_ERROR(err) ( HandleError( err, __FILE__, __LINE__ ) )
 
-#define th_p_block 256
+#define th_p_block 128
 #define blocks  (N + th_p_block-1) / th_p_block
 
 static void HandleError(cudaError_t err, const char *file, int line) {
@@ -70,7 +70,6 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
 #define GET_TIME(x);    if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
                 { perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
 
-#define USE_DOUBLE
 
 int main(int argc, char **argv) {
     // Program states
@@ -147,6 +146,7 @@ int main(int argc, char **argv) {
         h_vector2[j] = tmp_val;
     }
 
+    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     printf("Vector 2 first %f\n", h_vector2[0]);
 #else
     float answer = 0;

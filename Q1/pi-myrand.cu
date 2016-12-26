@@ -16,7 +16,7 @@
 
 __device__ float my_rand(unsigned int *seed) {
 	unsigned long a = 16807;  // constants for random number generator
-        unsigned long m = 2147483647;   // 2^31 - 1
+	unsigned long m = 2147483647;   // 2^31 - 1
 	unsigned long x = (unsigned long) *seed;
 
 	x = (a * x)%m;
