@@ -14,7 +14,7 @@
 #define pi(x) printf("%d\n",x);
 #define HANDLE_ERROR(err) ( HandleError( err, __FILE__, __LINE__ ) )
 
-#define th_p_block 32*4
+#define th_p_block 256
 #define blocks  (N + th_p_block-1) / th_p_block
 
 static void HandleError(cudaError_t err, const char *file, int line) {
