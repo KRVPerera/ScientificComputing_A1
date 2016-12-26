@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
     double * h_vector1 = (double *) malloc(sizeof(double) * N);
     double * h_vector2 = (double *) malloc(sizeof(double) * N);
     double * h_vector3 = (double *) malloc(sizeof(double)*blocks);
-    double * d_vector1, *d _vector2, * d_vector3;
+    double * d_vector1, * d_vector2, * d_vector3;
 
     #pragma omp parallel
     {
@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
     float * h_vector1 = (float * ) malloc(sizeof(float)*N);
     float * h_vector2 = (float * ) malloc(sizeof(float)*N);
     float * h_vector3 = (float * ) malloc(sizeof(float)*blocks);
-    float * d_vector1, * d_vector2, *d_vector3;
+    float * d_vector1, * d_vector2, * d_vector3;
 
 #pragma omp parallel
     {
@@ -256,7 +256,7 @@ int main(int argc, char **argv) {
         printf("C >>> Cuda version is running...\n")GET_TIME(t0);
         GET_TIME(t0);
         // memory allocation on device
-        #ifdef USE_DOUBLE
+#ifdef USE_DOUBLE
         HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, blocks * sizeof(double)));
