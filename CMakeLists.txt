@@ -23,4 +23,4 @@ include_directories("include")
 
 add_subdirectory(Q1)
 ##add_subdirectory(Util)
-##add_subdirectory(Q2)
+add_subdirectory(Q2)
