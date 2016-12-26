@@ -25,38 +25,7 @@ static void HandleError(cudaError_t err, const char *file, int line) {
     }
 }
 
-__global__ void dotPro_F(long n, float *vec1, float *vec2, float *vec3) {
-
-    __shared__ float cache[th_p_block];
-    unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
-    const unsigned int cacheIdx =  threadIdx.x;
-    float temp = 0;
-    while(tid < n)
-    {
-        temp += vec1[tid] * vec2[tid];
-        tid += blockDim.x * gridDim.x;
-    }
-
-    cache[cacheIdx] = temp;
-    __syncthreads();
-
-    // reduction
-    unsigned i = blockDim.x/2; // need the num threads to be a power of two (256 is okay)
-    while( i != 0 ){
-        if(cacheIdx < i){
-            cache[cacheIdx] += cache[cacheIdx + i ];
-        }
-
-        __syncthreads(); //sync threads in the current block
-        // power of two needed here
-        i = i/2;
-    }
-    if(cacheIdx == 0){
-        vec3[blockIdx.x] = cache[0];
-    }
-//    if (tid < n) vec3[i] = vec1[i] * vec2[i];
-}
-
+#ifdef  USE_DOUBLE
 
 __global__ void dotPro(long int n, double *vec1, double *vec2, double *vec3) {
 
@@ -89,6 +58,40 @@ __global__ void dotPro(long int n, double *vec1, double *vec2, double *vec3) {
 	}
 //    if (tid < n) vec3[i] = vec1[i] * vec2[i];
 }
+#else
+__global__ void dotPro(long n, float *vec1, float *vec2, float *vec3) {
+
+    __shared__ float cache[th_p_block];
+    unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int cacheIdx =  threadIdx.x;
+    float temp = 0;
+    while(tid < n)
+    {
+        temp += vec1[tid] * vec2[tid];
+        tid += blockDim.x * gridDim.x;
+    }
+
+    cache[cacheIdx] = temp;
+    __syncthreads();
+
+    // reduction
+    unsigned i = blockDim.x/2; // need the num threads to be a power of two (256 is okay)
+    while( i != 0 ){
+        if(cacheIdx < i){
+            cache[cacheIdx] += cache[cacheIdx + i ];
+        }
+
+        __syncthreads(); //sync threads in the current block
+        // power of two needed here
+        i = i/2;
+    }
+    if(cacheIdx == 0){
+        vec3[blockIdx.x] = cache[0];
+    }
+//    if (tid < n) vec3[i] = vec1[i] * vec2[i];
+}
+
+#endif
 
 float elapsed_time_msec(struct timespec *begin, struct timespec *end,
                         unsigned long *sec, unsigned long *nsec) {
@@ -181,7 +184,7 @@ int main(int argc, char **argv) {
         h_vector2[j] = tmp_val;
     }
 
-   // cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
+    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     printf("Vector 2 first %f\n", h_vector2[0]);
 #else
     float answer = 0;
@@ -272,7 +275,7 @@ int main(int argc, char **argv) {
         HANDLE_ERROR(cudaMemcpy(d_vector2, h_vector2, N * sizeof(float), cudaMemcpyHostToDevice));
 
         // kerneal code
-        dotPro_F <<< blocks, th_p_block >>> (N, d_vector1, d_vector2, d_vector3);
+        dotPro <<< blocks, th_p_block >>> (N, d_vector1, d_vector2, d_vector3);
 
         // copy device memory back to host memory
         HANDLE_ERROR(cudaMemcpy(h_vector3, d_vector3, blocks * sizeof(float), cudaMemcpyDeviceToHost));

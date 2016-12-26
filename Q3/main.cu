@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
     double *mat_ans = new double [N*N];
     double *mat_p_ans = new double [N*N];
     double *mat_c_ans = new double [N*N];
-
+cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     // cuda device pinters
     double *d_mat1,*d_mat2, *d_mat_c_ans;
 
