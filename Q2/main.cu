@@ -170,18 +170,21 @@ int main(int argc, char **argv) {
     long double answer_p = 0;
     printf("Generating double vectors of size  %ld\n", N);
 
-    double *h_vector1 = (double *) malloc(sizeof(double) * N);
-    double *h_vector2 = (double *) malloc(sizeof(double) * N);
+    double * h_vector1 = (double *) malloc(sizeof(double) * N);
+    double * h_vector2 = (double *) malloc(sizeof(double) * N);
     double * h_vector3 = (double *) malloc(sizeof(double)*blocks);
-    double * d_vector3;
-    double *d_vector1, *d_vector2;
+    double * d_vector1, *d _vector2, * d_vector3;
 
-    double tmp_val;
-    for (int j = 0; j < N; ++j) {
+    #pragma omp parallel
+    {
+        double tmp_val;
+        #pragma omp for
+        for (int j = 0; j < N; ++j) {
         tmp_val = 1.0 * rand() / RAND_MAX + 1;
         h_vector1[j] = tmp_val;
         tmp_val = 1.0 * rand() / RAND_MAX + 1;
         h_vector2[j] = tmp_val;
+        }
     }
 
     cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
@@ -198,7 +201,7 @@ int main(int argc, char **argv) {
     float * h_vector3 = (float * ) malloc(sizeof(float)*blocks);
     float * d_vector1, * d_vector2, *d_vector3;
 
-#pragma omp parallel num_threads(num_threads)
+#pragma omp parallel
     {
 #pragma omp for
         for (int j = 0; j < N; ++j) {
