@@ -218,12 +218,6 @@ int main(int argc, char **argv) {
 #ifdef USE_DOUBLE
     cout << "Generating double Matrices of size " << N << "x" << N << "\n";
 
-//    double **mat1 = new double *[N];
-//    double **mat2 = new double *[N];
-//    double **mat_ans = new double *[N];
-//    double **mat_p_ans = new double *[N];
-//    double **mat_c_ans = new double *[N];
-//    double local_sum[num_threads] = {};
     double *mat1 = new double [N*N];
     double *mat2 = new double [N*N];
     double *mat_ans = new double [N*N];
@@ -262,8 +256,8 @@ int main(int argc, char **argv) {
     float *mat_c_ans = new float [N*N];
      // cuda device pinters
     float *d_mat1, *d_mat2, *d_mat_c_ans;
-     omp_set_num_threads(num_threads);
-#pragma omp parallel
+
+    #pragma omp parallel
     {
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
@@ -336,7 +330,7 @@ int main(int argc, char **argv) {
         dim3 threads(block_size, block_size);
         dim3 grid(N / block_size, N / block_size);
         GET_TIME(t0);
-
+#ifdef USE_DOUBLE
         //allocating memory on the device
         HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(double)));
@@ -346,6 +340,16 @@ int main(int argc, char **argv) {
         HANDLE_ERROR(cudaMemcpy(d_mat2, mat2, N * N * sizeof(double), cudaMemcpyHostToDevice));
         matrixMultiKernel<<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
         HANDLE_ERROR(cudaMemcpy(d_mat_c_ans, d_mat_c_ans, N * N * sizeof(double), cudaMemcpyDeviceToHost));
+#else
+        HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(float)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(float)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_mat_c_ans, N * N * sizeof(float)));
+        // copy host memory to device
+        HANDLE_ERROR(cudaMemcpy(d_mat1, mat1, N * N * sizeof(float), cudaMemcpyHostToDevice));
+        HANDLE_ERROR(cudaMemcpy(d_mat2, mat2, N * N * sizeof(float), cudaMemcpyHostToDevice));
+        matrixMultiKernel<<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
+        HANDLE_ERROR(cudaMemcpy(d_mat_c_ans, d_mat_c_ans, N * N * sizeof(float), cudaMemcpyDeviceToHost));
+#endif
         GET_TIME(t1);
         run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "S >>> Cuda Version Elapsed-time(ms) = " << run_time << " ms\n";
