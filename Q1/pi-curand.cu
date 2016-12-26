@@ -42,6 +42,26 @@ float host_monte_carlo(long trials) {
 	return 4.0f * points_in_circle / trials;
 }
 
+float host_monte_carlo_p(long trials, int nthreads) {
+    float x, y;
+    long points_in_circle=0;
+
+    #pragma omp parallel num_threads(nthreads)
+    {
+        long local_sum = 0;
+        #pragma omp for schedule (static) reduction(+:local_sum)
+        for (long i = 0; i < trials; i++) {
+            x = rand() / (float) RAND_MAX;
+            y = rand() / (float) RAND_MAX;
+            local_sum += (x * x + y * y <= 1.0f);
+        }
+
+        #pragma omp atomic
+        points_in_circle += local_sum;
+    }
+    return 4.0f * points_in_circle / trials;
+}
+
 int main (int argc, char *argv[]) {
 	clock_t start, stop;
 	float host[BLOCKS * THREADS];
@@ -76,6 +96,11 @@ BLOCKS, THREADS);
 	float pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
 	stop = clock();
 	printf("CPU pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
+
+    start = clock();
+    float pi_cpu2 = host_monte_carlo_p(BLOCKS * THREADS * TRIALS_PER_THREAD, 4);
+    stop = clock();
+    printf("CPU parellel pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
 
 	printf("CUDA estimate of PI = %f [error of %f]\n", pi_gpu, pi_gpu - PI);
 	printf("CPU estimate of PI = %f [error of %f]\n", pi_cpu, pi_cpu - PI);

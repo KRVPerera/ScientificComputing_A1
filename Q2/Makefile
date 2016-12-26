@@ -1,10 +1,10 @@
 objects = main.o
 
 all: $(objects)
-	nvcc -arch=sm_20 -Xcompiler -fopenmp  $(objects) -o Q2_run
+	nvcc -gencode arch=compute_20,code=sm_20 -Xcompiler -fopenmp  $(objects) -o Q2_run
 
 %.o: %.cpp
-	nvcc -x cu -Xcompiler -fopenmp -arch=sm_20 -I. -dc $< -o $@
+	nvcc -x cu -gencode arch=compute_20,code=sm_20 -Xcompiler -fopenmp -I. -dc $< -o $@
 
 clean:
 	rm -f *.o Q2_run

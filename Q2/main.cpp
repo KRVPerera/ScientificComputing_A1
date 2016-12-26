@@ -250,7 +250,7 @@ int main(int argc, char **argv) {
         HANDLE_ERROR(cudaMemcpy(h_vector3, d_vector3, blocks * sizeof(double), cudaMemcpyDeviceToHost));
 #else
       fprintf(stderr, "Float processing of cuda not yet implemented\n");
-#enfif
+#endif
 	       // serial portions summation
         answer_c = 0;
         for (int i = 0; i < blocks; ++i) {
