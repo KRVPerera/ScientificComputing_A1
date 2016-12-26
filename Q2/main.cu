@@ -13,9 +13,8 @@
 #define MAX_THREADS 20
 #define pi(x) printf("%d\n",x);
 #define HANDLE_ERROR(err) ( HandleError( err, __FILE__, __LINE__ ) )
+#define th_p_block  256
 
-#define th_p_block 128
-#define blocks  (N+th_p_block-1)/th_p_block
 
 static void HandleError(cudaError_t err, const char *file, int line) {
     if (err != cudaSuccess) {
@@ -25,9 +24,9 @@ static void HandleError(cudaError_t err, const char *file, int line) {
     }
 }
 
-#ifdef  USE_DOUBLE
 
-__global__ void dotPro(long int n, double *vec1, double *vec2, double *vec3) {
+#ifdef USE_DOUBLE
+__global__ void dotPro(long n, double *vec1, double *vec2, double *vec3) {
 
     __shared__ double cache[th_p_block];
     unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -120,6 +119,10 @@ int main(int argc, char **argv) {
     opterr = 1;
     seq_ver = p_ver = cuda_ver = veri_run = 0;
 
+
+    int blocks  = (N+th_p_block-1)/th_p_block;
+
+    printf("Blocks %d\n", blocks);
     while ((c = getopt(argc, argv, "scp:vn:")) != -1) {
         switch (c) {
             case 'p':
