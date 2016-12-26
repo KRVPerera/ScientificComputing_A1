@@ -1,5 +1,6 @@
 // Source: http://docs.nvidia.com/cuda/curand/index.html
-
+// Changed the N to match 4096
+// Changed the M to match 256*256
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -20,6 +21,7 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
 #define GET_TIME(x);    if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
                 { perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
 
+#define PI 3.1415926535  // known value of pi
 
 // we could vary M & N to find the perf sweet spot
 struct estimate_pi :
@@ -27,7 +29,7 @@ struct estimate_pi :
     __device__
     float operator()(unsigned int thread_id) {
         float sum = 0;
-        unsigned int N = 10000; // samples per thread
+        unsigned int N = 65536; // samples per thread , changed to 4096 from 10000
 
         unsigned int seed = thread_id;
 
@@ -59,18 +61,26 @@ struct estimate_pi :
 };
 
 int main(void) {
+    // Variables to be used in time calculation
+    struct timespec t0, t1;
+    float comp_time;
+    unsigned long sec, nsec;
     // use 30K independent seeds
-    int M = 30000;
+    int M = 30000;  // changed to match 256*256 from 30000
 
-    //total operations N from each call to estimate_pi and with M calls = M * N
+    GET_TIME(t0);
+    //total operations N from each call to estimate_pi and with M calls, leaving us with total M * N calculations
     float estimate = thrust::transform_reduce(thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(M),
                                               estimate_pi(), 0.0f, thrust::plus<float>());
 
     estimate /= M;
 
-    std::cout << std::setprecision(4);
-    std::cout << "pi is approximately ";
-    std::cout << estimate << std::endl;
+    GET_TIME(t1);
+    comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
+
+    std::out << "pi-thrust pi calculated in \t\t" << comp_time << "ms." << std::endl;
+    std::cout << std::setprecision(3);
+    std::cout << "pi-thrust  estimate of PI \t\t= " << estimate << "[error of " << estimate - PI << "]" << std::endl;
     return 0;
 }
 
