@@ -162,7 +162,8 @@ int main(int argc, char **argv) {
         printf("Thread count cannot exceed %d\n", MAX_THREADS);
         abort();
     }
-
+    int blocks  = (N+th_p_block-1)/th_p_block;
+    printf("Blocks %d\n", blocks);
     srand(time(NULL));
 
 #ifdef USE_DOUBLE
@@ -215,8 +216,7 @@ int main(int argc, char **argv) {
 
 #endif
 
-    int blocks  = (N+th_p_block-1)/th_p_block;
-    printf("Blocks %d\n", blocks);
+
 
 #ifdef USE_DOUBLE
     printf("Defined : USE_DOUBLE\n");
