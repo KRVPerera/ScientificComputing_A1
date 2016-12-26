@@ -15,9 +15,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <A1Config.h>
-#define TRIALS_PER_THREAD 4096
-#define BLOCKS 256
-#define THREADS 256
+
 #define PI 3.1415926535  // known value of pi
 
 float elapsed_time_msec(struct timespec *begin, struct timespec *end,
@@ -221,7 +219,7 @@ BLOCKS, THREADS);
 
 
     GET_TIME(t0);
-    //pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
+    pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
     GET_TIME(t1);
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
 	printf("CPU pi calculated in \t\t%9.3f ms.\n", comp_time);

@@ -9,9 +9,7 @@
 #include <math.h>
 #include <time.h>
 #include <A1Config.h>
-#define TRIALS_PER_THREAD 4096
-#define BLOCKS 256
-#define THREADS 256
+
 #define PI 3.1415926535  // known value of pi
 
 float elapsed_time_msec(struct timespec *begin, struct timespec *end,

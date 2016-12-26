@@ -14,9 +14,6 @@
 #include <iostream>
 #include <iomanip>
 #include <A1Config.h>
-#define TRIALS_PER_THREAD 4096
-#define BLOCKS 256
-#define THREADS 256
 
 float elapsed_time_msec(struct timespec *begin, struct timespec *end,
                         unsigned long *sec, unsigned long *nsec);
