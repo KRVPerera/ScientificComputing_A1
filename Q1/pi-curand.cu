@@ -45,10 +45,10 @@ float host_monte_carlo(long trials) {
 float host_monte_carlo_p(long trials, int nthreads) {
     float x, y;
     long points_in_circle=0;
-
+    long local_sum = 0;
     #pragma omp parallel num_threads(nthreads)
     {
-        long local_sum = 0;
+
         #pragma omp for schedule (static) reduction(+:local_sum)
         for (long i = 0; i < trials; i++) {
             x = rand() / (float) RAND_MAX;
