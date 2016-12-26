@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
     float answer_c = 0;
     float answer_p = 0;
 
-    printf("Generating float vectors of size  %d\n",N);
+    printf("Generating float vectors of size  %ld\n",N);
 
     float * h_vector1 = (float * ) malloc(sizeof(float)*N);
     float * h_vector2 = (float * ) malloc(sizeof(float)*N);

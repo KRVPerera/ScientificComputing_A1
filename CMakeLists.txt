@@ -13,7 +13,7 @@ set(TRIALS_PER_THREAD 4096)
 set(BLOCKS 256)
 set(THREADS 256)
 
-option(USE_DOUBLE "Use double values in computation" ON)
+option(USE_DOUBLE "Use double values in computation" OFF)
 configure_file("A1Config.h.in" "${PROJECT_BINARY_DIR}/A1Config.h")
 #
 ## adding include path to find the generated config file

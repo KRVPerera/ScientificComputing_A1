@@ -134,7 +134,7 @@ BLOCKS, THREADS);
 
 	cudaMemcpy(host, dev, BLOCKS * THREADS * sizeof(float), cudaMemcpyDeviceToHost); // return results 
 #endif
-	pi_gpu;
+	pi_gpu = 0;
 	for(int i = 0; i < BLOCKS * THREADS; i++) {
 		pi_gpu += host[i];
 	}
