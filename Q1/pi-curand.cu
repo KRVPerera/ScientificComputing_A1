@@ -14,6 +14,7 @@
 #include <omp.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <A1Config.h>
 #define TRIALS_PER_THREAD 4096
 #define BLOCKS 256
 #define THREADS 256
@@ -24,6 +25,56 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
 
 #define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
 				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
+
+#ifdef USE_DOUBLE
+__global__ void gpu_monte_carlo(double *estimate, curandState *states) {
+	unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
+	int points_in_circle = 0;
+	double x, y;
+
+	curand_init(1234, tid, 0, &states[tid]);  // 	Initialize CURAND
+
+
+	for(int i = 0; i < TRIALS_PER_THREAD; i++) {
+		x = curand_uniform (&states[tid]);
+		y = curand_uniform (&states[tid]);
+		points_in_circle += (x*x + y*y <= 1.0f); // count if x & y is in the circle.
+	}
+	estimate[tid] = 4.0f * points_in_circle / (double) TRIALS_PER_THREAD; // return estimate of pi
+}
+
+float host_monte_carlo(long trials) {
+	double x, y;
+	long points_in_circle;
+	for(long i = 0; i < trials; i++) {
+		x = rand() / (double) RAND_MAX;
+		y = rand() / (double) RAND_MAX;
+		points_in_circle += (x*x + y*y <= 1.0f);
+	}
+	return 4.0f * points_in_circle / (double)trials;
+}
+
+float host_monte_carlo_p(long trials, int nthreads) {
+    double x, y;
+    long points_in_circle=0;
+    long tot_trials = trials/nthreads;
+    long local_sum = 0;
+    #pragma omp parallel num_threads(nthreads)
+    {
+        #pragma omp for schedule (static) reduction(+:local_sum)
+        for (long i = 0; i < tot_trials; i++) {
+            x = rand() / (double) RAND_MAX;
+            y = rand() / (double) RAND_MAX;
+            local_sum += (x * x + y * y <= 1.0f);
+        }
+
+        #pragma omp critical
+        points_in_circle += local_sum;
+    }
+
+    return 4.0f * points_in_circle / (double)trials;
+}
+#else
 
 __global__ void gpu_monte_carlo(float *estimate, curandState *states) {
 	unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -72,13 +123,27 @@ float host_monte_carlo_p(long trials, int nthreads) {
 
     return 4.0f * points_in_circle / trials;
 }
+#endif
+
+
 
 int main (int argc, char *argv[]) {
     struct timespec t0, t1;
     float comp_time;
     unsigned long sec, nsec;
+#ifdef USE_DOUBLE
+    double host[BLOCKS * THREADS];
+	double *dev;
+    double pi_cpu2;
+    double pi_gpu;
+    double pi_cpu
+#else
 	float host[BLOCKS * THREADS];
 	float *dev;
+    float pi_cpu2;
+    float pi_gpu;
+    float pi_cpu
+#endif
 	curandState *devStates;
     int c, num_threads = 4;
     opterr = 1;
@@ -117,7 +182,7 @@ BLOCKS, THREADS);
 
 	cudaMemcpy(host, dev, BLOCKS * THREADS * sizeof(float), cudaMemcpyDeviceToHost); // return results
 
-	float pi_gpu;
+
 	for(int i = 0; i < BLOCKS * THREADS; i++) {
 		pi_gpu += host[i];
 	}
@@ -131,23 +196,27 @@ BLOCKS, THREADS);
 
 
     GET_TIME(t0);
-    float pi_cpu2 = host_monte_carlo_p(BLOCKS * THREADS * TRIALS_PER_THREAD, num_threads);
+    pi_cpu2 = host_monte_carlo_p(BLOCKS * THREADS * TRIALS_PER_THREAD, num_threads);
     GET_TIME(t1);
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
     printf("CPU parellel pi calculated in \t%9.3f ms using %d threads.\n", comp_time, num_threads);
 
 
     GET_TIME(t0);
-	float pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
+	 pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
     GET_TIME(t1);
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
 	printf("CPU pi calculated in \t\t%9.3f ms.\n", comp_time);
 
-
+#ifdef USE_DOUBLE
+    printf("CUDA estimate of PI \t\t= %Lf \t[error of %Lf]\n", pi_gpu, pi_gpu - PI);
+	printf("CPU estimate of PI \t\t= %Lf \t[error of %Lf]\n", pi_cpu, pi_cpu - PI);
+	printf("CPU parallel estimate of PI \t= %Lf \t[error of %Lf]\n", pi_cpu2, pi_cpu2 - PI);
+#else
 	printf("CUDA estimate of PI \t\t= %f \t[error of %f]\n", pi_gpu, pi_gpu - PI);
 	printf("CPU estimate of PI \t\t= %f \t[error of %f]\n", pi_cpu, pi_cpu - PI);
 	printf("CPU parallel estimate of PI \t= %f \t[error of %f]\n", pi_cpu2, pi_cpu2 - PI);
-
+#endif
 	return 0;
 }
 
