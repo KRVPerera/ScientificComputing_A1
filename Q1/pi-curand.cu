@@ -3,18 +3,27 @@
 // Written by Barry Wilkinson, UNC-Charlotte. Pi.cu  December 22, 2010.
 //Derived somewhat from code developed by Patrick Rogers, UNC-C
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
+#include <stdlib.h>
 #include <cuda.h>
+#include <inttypes.h>
 #include <math.h>
 #include <time.h>
 #include <curand_kernel.h>
 #include <omp.h>
-
+#include <getopt.h>
+#include <unistd.h>
 #define TRIALS_PER_THREAD 4096
 #define BLOCKS 256
 #define THREADS 256
 #define PI 3.1415926535  // known value of pi
+
+float elapsed_time_msec(struct timespec *begin, struct timespec *end,
+                        unsigned long *sec, unsigned long *nsec);
+
+#define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
+				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
 
 __global__ void gpu_monte_carlo(float *estimate, curandState *states) {
 	unsigned int tid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -46,11 +55,10 @@ float host_monte_carlo(long trials) {
 float host_monte_carlo_p(long trials, int nthreads) {
     float x, y;
     long points_in_circle=0;
-    long local_sum = 0;
     long tot_trials = trials/nthreads;
+    long local_sum = 0;
     #pragma omp parallel num_threads(nthreads)
     {
-
         #pragma omp for schedule (static) reduction(+:local_sum)
         for (long i = 0; i < tot_trials; i++) {
             x = rand() / (float) RAND_MAX;
@@ -58,22 +66,48 @@ float host_monte_carlo_p(long trials, int nthreads) {
             local_sum += (x * x + y * y <= 1.0f);
         }
 
-        #pragma omp atomic
+        #pragma omp critical
         points_in_circle += local_sum;
     }
+
     return 4.0f * points_in_circle / trials;
 }
 
 int main (int argc, char *argv[]) {
-	clock_t start, stop;
+    struct timespec t0, t1;
+    float comp_time;
+    unsigned long sec, nsec;
 	float host[BLOCKS * THREADS];
 	float *dev;
 	curandState *devStates;
+    int c, num_threads = 4;
+    opterr = 1;
+    while ((c = getopt(argc, argv, "hp:")) != -1) {
+        switch (c) {
+            case 'p':
+                num_threads = atoi(optarg);
+                if(num_threads == 0) {
+                 fprintf(stderr, "Invalid value for -p, set to 4\n");
+                    num_threads = 4;
+                }
+                break;
+            case '?':
+                if (optopt == 'p') {
+                    fprintf(stderr, "Option -p requires number of threads\n");
+                } else {
+                    fprintf(stderr, "Unknown option character\n");
+                }
+                return 1;
+            default:
+                abort();
+        }
+    }
+
 
 	printf("# of trials per thread = %d, # of blocks = %d, # of threads/block = %d.\n", TRIALS_PER_THREAD,
 BLOCKS, THREADS);
 
-	start = clock();
+    GET_TIME(t0);
 
 	cudaMalloc((void **) &dev, BLOCKS * THREADS * sizeof(float)); // allocate device mem. for counts
 	
@@ -81,7 +115,7 @@ BLOCKS, THREADS);
 
 	gpu_monte_carlo<<<BLOCKS, THREADS>>>(dev, devStates);
 
-	cudaMemcpy(host, dev, BLOCKS * THREADS * sizeof(float), cudaMemcpyDeviceToHost); // return results 
+	cudaMemcpy(host, dev, BLOCKS * THREADS * sizeof(float), cudaMemcpyDeviceToHost); // return results
 
 	float pi_gpu;
 	for(int i = 0; i < BLOCKS * THREADS; i++) {
@@ -90,23 +124,41 @@ BLOCKS, THREADS);
 
 	pi_gpu /= (BLOCKS * THREADS);
 
-	stop = clock();
+    GET_TIME(t1);
+    comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
 
-	printf("GPU pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
+	printf("GPU pi calculated in \t\t%9.3f ms.\n", comp_time);
 
-	start = clock();
+
+    GET_TIME(t0);
+    float pi_cpu2 = host_monte_carlo_p(BLOCKS * THREADS * TRIALS_PER_THREAD, num_threads);
+    GET_TIME(t1);
+    comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
+    printf("CPU parellel pi calculated in \t%9.3f ms using %d threads.\n", comp_time, num_threads);
+
+
+    GET_TIME(t0);
 	float pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
-	stop = clock();
-	printf("CPU pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
+    GET_TIME(t1);
+    comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
+	printf("CPU pi calculated in \t\t%9.3f ms.\n", comp_time);
 
-    start = clock();
-    float pi_cpu2 = host_monte_carlo_p(BLOCKS * THREADS * TRIALS_PER_THREAD, 40);
-    stop = clock();
-    printf("CPU parellel pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
 
-	printf("CUDA estimate of PI = %f [error of %f]\n", pi_gpu, pi_gpu - PI);
-	printf("CPU estimate of PI = %f [error of %f]\n", pi_cpu, pi_cpu - PI);
-	
+	printf("CUDA estimate of PI \t\t= %f \t[error of %f]\n", pi_gpu, pi_gpu - PI);
+	printf("CPU estimate of PI \t\t= %f \t[error of %f]\n", pi_cpu, pi_cpu - PI);
+	printf("CPU parallel estimate of PI \t= %f \t[error of %f]\n", pi_cpu2, pi_cpu2 - PI);
+
 	return 0;
 }
 
+float elapsed_time_msec(struct timespec *begin, struct timespec *end,
+                        unsigned long *sec, unsigned long *nsec) {
+    if (end->tv_nsec < begin->tv_nsec) {
+        *nsec = 1000000000 - (begin->tv_nsec - end->tv_nsec);
+        *sec = end->tv_sec - begin->tv_sec - 1;
+    } else {
+        *nsec = end->tv_nsec - begin->tv_nsec;
+        *sec = end->tv_sec - begin->tv_sec;
+    }
+    return (float) (*sec) * 1000 + ((float) (*nsec)) / 1000000.0;
+}
