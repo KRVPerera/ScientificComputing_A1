@@ -9,6 +9,7 @@
 #include <math.h>
 #include <time.h>
 #include <curand_kernel.h>
+#include <omp.h>
 
 #define TRIALS_PER_THREAD 4096
 #define BLOCKS 256
@@ -46,11 +47,12 @@ float host_monte_carlo_p(long trials, int nthreads) {
     float x, y;
     long points_in_circle=0;
     long local_sum = 0;
+    long tot_trials = trials/nthreads;
     #pragma omp parallel num_threads(nthreads)
     {
 
         #pragma omp for schedule (static) reduction(+:local_sum)
-        for (long i = 0; i < trials; i++) {
+        for (long i = 0; i < tot_trials; i++) {
             x = rand() / (float) RAND_MAX;
             y = rand() / (float) RAND_MAX;
             local_sum += (x * x + y * y <= 1.0f);
@@ -98,7 +100,7 @@ BLOCKS, THREADS);
 	printf("CPU pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
 
     start = clock();
-    float pi_cpu2 = host_monte_carlo_p(BLOCKS * THREADS * TRIALS_PER_THREAD, 4);
+    float pi_cpu2 = host_monte_carlo_p(BLOCKS * THREADS * TRIALS_PER_THREAD, 40);
     stop = clock();
     printf("CPU parellel pi calculated in %f s.\n", (stop-start)/(float)CLOCKS_PER_SEC);
 

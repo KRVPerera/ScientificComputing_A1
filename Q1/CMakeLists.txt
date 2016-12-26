@@ -8,7 +8,7 @@ include_directories("include")
 include_directories("${PROJECT_BINARY_DIR}")
 include_directories("include")
 
-list(APPEND CUDA_NVCC_FLAGS  -gencode arch=compute_20,code=sm_20)
+list(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_20,code=sm_20)
 
 find_package (OpenMP)
 if(OPENMP_FOUND)
