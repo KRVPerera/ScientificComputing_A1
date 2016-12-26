@@ -43,9 +43,9 @@ __global__ void gpu_monte_carlo(double *estimate, curandState *states) {
 	estimate[tid] = 4.0f * points_in_circle / (double) TRIALS_PER_THREAD; // return estimate of pi
 }
 
-float host_monte_carlo(long trials) {
+double host_monte_carlo(long trials) {
 	double x, y;
-	long points_in_circle;
+	long points_in_circle = 0;
 	for(long i = 0; i < trials; i++) {
 		x = rand() / (double) RAND_MAX;
 		y = rand() / (double) RAND_MAX;
@@ -54,7 +54,7 @@ float host_monte_carlo(long trials) {
 	return 4.0f * points_in_circle / (double)trials;
 }
 
-float host_monte_carlo_p(long trials, int nthreads) {
+double host_monte_carlo_p(long trials, int nthreads) {
     double x, y;
     long points_in_circle=0;
     long tot_trials = trials/nthreads;
@@ -94,7 +94,7 @@ __global__ void gpu_monte_carlo(float *estimate, curandState *states) {
 
 float host_monte_carlo(long trials) {
 	float x, y;
-	long points_in_circle;
+	long points_in_circle = 0;
 	for(long i = 0; i < trials; i++) {
 		x = rand() / (float) RAND_MAX;
 		y = rand() / (float) RAND_MAX;
@@ -105,7 +105,7 @@ float host_monte_carlo(long trials) {
 
 float host_monte_carlo_p(long trials, int nthreads) {
     float x, y;
-    long points_in_circle=0;
+    long points_in_circle = 0;
     long tot_trials = trials/nthreads;
     long local_sum = 0;
     #pragma omp parallel num_threads(nthreads)
@@ -132,17 +132,19 @@ int main (int argc, char *argv[]) {
     float comp_time;
     unsigned long sec, nsec;
 #ifdef USE_DOUBLE
+    printf("Running the DOUBLE Version\n");
     double host[BLOCKS * THREADS];
 	double *dev;
     double pi_cpu2;
     double pi_gpu;
-    double pi_cpu
+    double pi_cpu;
 #else
+    printf("Running the FLOAT Version\n");
 	float host[BLOCKS * THREADS];
 	float *dev;
     float pi_cpu2;
     float pi_gpu;
-    float pi_cpu
+    float pi_cpu;
 #endif
 	curandState *devStates;
     int c, num_threads = 4;
@@ -174,6 +176,22 @@ BLOCKS, THREADS);
 
     GET_TIME(t0);
 
+#ifdef USE_DOUBLE
+    cudaMalloc((void **) &dev, BLOCKS * THREADS * sizeof(double)); // allocate device mem. for counts
+
+	cudaMalloc( (void **)&devStates, THREADS * BLOCKS * sizeof(curandState) );
+
+	gpu_monte_carlo<<<BLOCKS, THREADS>>>(dev, devStates);
+
+	cudaMemcpy(host, dev, BLOCKS * THREADS * sizeof(double), cudaMemcpyDeviceToHost); // return results
+
+
+	for(int i = 0; i < BLOCKS * THREADS; i++) {
+		pi_gpu += host[i];
+	}
+
+	pi_gpu /= (BLOCKS * THREADS);
+#else
 	cudaMalloc((void **) &dev, BLOCKS * THREADS * sizeof(float)); // allocate device mem. for counts
 	
 	cudaMalloc( (void **)&devStates, THREADS * BLOCKS * sizeof(curandState) );
@@ -188,7 +206,7 @@ BLOCKS, THREADS);
 	}
 
 	pi_gpu /= (BLOCKS * THREADS);
-
+#endif
     GET_TIME(t1);
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
 
@@ -203,20 +221,16 @@ BLOCKS, THREADS);
 
 
     GET_TIME(t0);
-	 pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
+    //pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
     GET_TIME(t1);
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
 	printf("CPU pi calculated in \t\t%9.3f ms.\n", comp_time);
 
-#ifdef USE_DOUBLE
-    printf("CUDA estimate of PI \t\t= %Lf \t[error of %Lf]\n", pi_gpu, pi_gpu - PI);
-	printf("CPU estimate of PI \t\t= %Lf \t[error of %Lf]\n", pi_cpu, pi_cpu - PI);
-	printf("CPU parallel estimate of PI \t= %Lf \t[error of %Lf]\n", pi_cpu2, pi_cpu2 - PI);
-#else
+
 	printf("CUDA estimate of PI \t\t= %f \t[error of %f]\n", pi_gpu, pi_gpu - PI);
 	printf("CPU estimate of PI \t\t= %f \t[error of %f]\n", pi_cpu, pi_cpu - PI);
 	printf("CPU parallel estimate of PI \t= %f \t[error of %f]\n", pi_cpu2, pi_cpu2 - PI);
-#endif
+
 	return 0;
 }
 

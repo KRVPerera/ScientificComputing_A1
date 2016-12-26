@@ -13,6 +13,10 @@
 
 #include <iostream>
 #include <iomanip>
+#include <A1Config.h>
+#define TRIALS_PER_THREAD 4096
+#define BLOCKS 256
+#define THREADS 256
 
 float elapsed_time_msec(struct timespec *begin, struct timespec *end,
                         unsigned long *sec, unsigned long *nsec);
@@ -24,12 +28,50 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
 #define PI 3.1415926535  // known value of pi
 
 // we could vary M & N to find the perf sweet spot
+
+#ifdef USE_DOUBLE
+struct estimate_pi :
+        public thrust::unary_function<unsigned int, double> {
+    __device__
+    float operator()(unsigned int thread_id) {
+        double sum = 0;
+        unsigned int N = TRIALS_PER_THREAD; // samples per thread , changed to 4096 from 10000
+
+        unsigned int seed = thread_id;
+
+        curandState s;
+
+        // seed a random number generator
+        curand_init(seed, 0, 0, &s);
+
+        // take N samples in a quarter circle
+        for (unsigned int i = 0; i < N; ++i) {
+            // draw a sample from the unit square
+            double x = curand_uniform(&s);
+            double y = curand_uniform(&s);
+
+            // measure distance from the origin
+            double dist = sqrtf(x * x + y * y);
+
+            // add 1.0f if (u0,u1) is inside the quarter circle
+            if (dist <= 1.0f)
+                sum += 1.0f;
+        }
+
+        // multiply by 4 to get the area of the whole circle
+        sum *= 4.0f;
+
+        // divide by N
+        return sum / N;
+    }
+};
+#else
 struct estimate_pi :
         public thrust::unary_function<unsigned int, float> {
     __device__
     float operator()(unsigned int thread_id) {
         float sum = 0;
-        unsigned int N = 65536; // samples per thread , changed to 4096 from 10000
+        unsigned int N = TRIALS_PER_THREAD; // samples per thread , changed to 4096 from 10000
 
         unsigned int seed = thread_id;
 
@@ -60,19 +102,32 @@ struct estimate_pi :
     }
 };
 
+#endif
 int main(void) {
     // Variables to be used in time calculation
     struct timespec t0, t1;
     float comp_time;
     unsigned long sec, nsec;
     // use 30K independent seeds
-    int M = 30000;  // changed to match 256*256 from 30000
+    int M = BLOCKS*THREADS;  // changed to match 256*256 from 30000
+
+#ifdef USE_DOUBLE
+    std::cout << "Running DOUBLE Version" << std::endl;
+#else
+    std::cout << "Running FLOAT Version" << std::endl;
+#endif
 
     GET_TIME(t0);
     //total operations N from each call to estimate_pi and with M calls, leaving us with total M * N calculations
+
+#ifdef USE_DOUBLE
+    double estimate = thrust::transform_reduce(thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(M),
+                                              estimate_pi(), 0.0f, thrust::plus<double>());
+
+#else
     float estimate = thrust::transform_reduce(thrust::counting_iterator<int>(0), thrust::counting_iterator<int>(M),
                                               estimate_pi(), 0.0f, thrust::plus<float>());
-
+#endif
     estimate /= M;
 
     GET_TIME(t1);
