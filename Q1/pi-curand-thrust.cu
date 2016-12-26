@@ -113,7 +113,8 @@ int main(void) {
 #else
     std::cout << "Running FLOAT Version" << std::endl;
 #endif
-
+    printf("# of trials per thread = %d, # of blocks = %d, # of threads/block = %d.\n", TRIALS_PER_THREAD,
+           BLOCKS, THREADS);
     GET_TIME(t0);
     //total operations N from each call to estimate_pi and with M calls, leaving us with total M * N calculations
 
