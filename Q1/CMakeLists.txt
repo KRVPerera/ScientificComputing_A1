@@ -15,7 +15,7 @@ endif(OPENMP_FOUND)
 
 list(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_20,code=sm_20)
 
-cuda_add_executable(pi_mystery pi-mystery.cu)
+cuda_add_executable(pi-mystery pi-mystery.cu)
 cuda_add_executable(pi-curand-thrust pi-curand-thrust.cu)
 cuda_add_executable(pi-myrand pi-myrand.cu)
 cuda_add_executable(pi-curand pi-curand.cu)
