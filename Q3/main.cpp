@@ -315,9 +315,9 @@ int main(int argc, char **argv) {
 
     if (cuda_ver) {
         cout << "C >>> Cuda version is running...\n";
-        int block_size = 16;
+        int block_size = 4;
         dim3 threads(block_size, block_size);
-        dim3 grid(N / threads.x, N / threads.y);
+        dim3 grid(N / block_size, N / block_size);
         GET_TIME(t0);
 
         //allocating memory on the device
