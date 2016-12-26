@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
             case 's':
                 seq_ver = true;
                 break;
-            case 'g':
+            case 'c':
                 cuda_ver = true;
                 break;
             case 'v':
@@ -285,6 +285,23 @@ int main(int argc, char **argv) {
     cout << "Defined : USE_DOUBLE" << endl;
 #endif
     cout << "Matrices creation Done... " << endl;
+    if (seq_ver || veri_run) {
+        cout << "S >>> Sequential Version running...\n";
+
+        GET_TIME(t0);
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                // mat_ans is already set to zero
+                for (int k = 0; k < N; ++k) {
+                    mat_ans[i*N+j] += mat1[i*N + k] * mat2[k*N + j];
+                }
+            }
+        }
+        GET_TIME(t1);
+        run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
+        cout << "S >>> Sequential Version Elapsed-time(ms) = " << run_time << " ms\n";
+    }
+
 
     if (p_ver) {
         cout << "P >>> Parallel Version running...\n";
@@ -333,23 +350,6 @@ int main(int argc, char **argv) {
         run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "S >>> Cuda Version Elapsed-time(ms) = " << run_time << " ms\n";
 
-    }
-
-    if (seq_ver || veri_run) {
-        cout << "S >>> Sequential Version running...\n";
-
-        GET_TIME(t0);
-        for (int i = 0; i < N; ++i) {
-            for (int j = 0; j < N; ++j) {
-                // mat_ans is already set to zero
-                for (int k = 0; k < N; ++k) {
-                    mat_ans[i*N+j] += mat1[i*N + k] * mat2[k*N + j];
-                }
-            }
-        }
-        GET_TIME(t1);
-        run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
-        cout << "S >>> Sequential Version Elapsed-time(ms) = " << run_time << " ms\n";
     }
 
 
