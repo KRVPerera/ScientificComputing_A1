@@ -120,9 +120,7 @@ int main(int argc, char **argv) {
     seq_ver = p_ver = cuda_ver = veri_run = 0;
 
 
-    int blocks  = (N+th_p_block-1)/th_p_block;
 
-    printf("Blocks %d\n", blocks);
     while ((c = getopt(argc, argv, "scp:vn:")) != -1) {
         switch (c) {
             case 'p':
@@ -216,6 +214,9 @@ int main(int argc, char **argv) {
     }
 
 #endif
+
+    int blocks  = (N+th_p_block-1)/th_p_block;
+    printf("Blocks %d\n", blocks);
 
 #ifdef USE_DOUBLE
     printf("Defined : USE_DOUBLE\n");
