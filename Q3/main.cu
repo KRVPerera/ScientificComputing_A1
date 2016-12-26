@@ -8,7 +8,7 @@
 //#include <random>
 #include <algorithm>
 #include <omp.h>
-#include "A1Config.h"
+#include <A1Config.h>
 #include <cuda_runtime.h>
 
 using namespace std;

@@ -8,7 +8,7 @@
 #include <omp.h>
 #include <host_defines.h>
 #include <device_launch_parameters.h>
-#include "A1Config.h"
+#include <A1Config.h>
 
 #define MAX_THREADS 20
 #define pi(x) printf("%d\n",x);
