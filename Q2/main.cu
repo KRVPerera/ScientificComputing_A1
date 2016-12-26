@@ -38,6 +38,7 @@ __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
 	}
 
 	cache[cacheIdx] = temp;
+    __syncthreads();
 
 	// reduction
 	int i = blockDim.x/2; // need the num threads to be a power of two (256 is okay)
