@@ -17,4 +17,4 @@ endif(OPENMP_FOUND)
 
 list(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_20,code=sm_20)
 
-cuda_add_executable(Q2_run main.cu)
+cuda_add_executable(Q3_run main.cu)
