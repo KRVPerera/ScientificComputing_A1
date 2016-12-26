@@ -27,7 +27,7 @@ static void HandleError(cudaError_t err, const char *file, int line) {
 
 __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
 
-    __shared__ float cache[256];
+    __shared__ double cache[th_p_block];
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	const unsigned int cacheIdx =  threadIdx.x;
 	float temp = 0;
@@ -47,6 +47,7 @@ __global__ void dotPro(int n, double *vec1, double *vec2, double *vec3) {
 		}
 
 		__syncthreads(); //sync threads in the current block
+        // power of two needed here
 		i = i/2;
 	}
 	if(cacheIdx == 0){
