@@ -14,7 +14,7 @@
 #define pi(x) printf("%d\n",x);
 #define HANDLE_ERROR(err) ( HandleError( err, __FILE__, __LINE__ ) )
 
-#define th_p_block 128
+#define th_p_block 256
 #define blocks  (N + th_p_block-1) / th_p_block
 
 static void HandleError(cudaError_t err, const char *file, int line) {
@@ -183,26 +183,6 @@ int main(int argc, char **argv) {
         printf("P >>> number of threads : %d\n", num_threads);
         //  #pragma omp parallel shared(local_sum, h_vector1, h_vector2, num_threads) private(id, istart, iend, i)
         GET_TIME(t0);
-
-//      Manual parallelalisation
-//        #pragma omp parallel num_threads(num_threads)
-//        {
-//            int id = omp_get_thread_num();
-//            int num_threads = omp_get_num_threads();
-//            int istart = floor((id * N) / num_threads);
-//            int iend = floor(((id + 1) * N) / num_threads);
-//            if(id == num_threads - 1){
-//                iend = N;
-//            }
-//            local_sum[id] = 0;
-//
-//            for (int i = istart; i < iend; i++) {
-//                local_sum[id] = local_sum[id] + (h_vector1[i] * h_vector2[i]);
-//            }
-//        }
-//        for (int valid = 0; valid < num_threads; valid++) {
-//            answer_p += local_sum[valid];
-//        }
 
 #pragma omp parallel num_threads(num_threads)
         {

@@ -88,16 +88,16 @@ BLOCKS, THREADS);
     GET_TIME(t1);
 
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
-    printf("GPU pi calculated in %f s.\n", comp_time);
+    printf("GPU pi calculated in \t%9.3f s.\n", comp_time);
 
     GET_TIME(t0);
 	float pi_cpu = host_monte_carlo(BLOCKS * THREADS * TRIALS_PER_THREAD);
     GET_TIME(t1);
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
-	printf("CPU pi calculated in %f s.\n", comp_time);
+	printf("CPU pi calculated in \t%9.3f s.\n", comp_time);
 
-	printf("CUDA estimate of PI = %f [error of %f]\n", pi_gpu, pi_gpu - PI);
-	printf("CPU estimate of PI = %f [error of %f]\n", pi_cpu, pi_cpu - PI);
+	printf("CUDA estimate of PI \t= %f [error of %f]\n", pi_gpu, pi_gpu - PI);
+	printf("CPU estimate of PI \t= %f [error of %f]\n", pi_cpu, pi_cpu - PI);
 	
 	return 0;
 }
