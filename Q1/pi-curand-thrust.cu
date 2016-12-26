@@ -78,9 +78,10 @@ int main(void) {
     GET_TIME(t1);
     comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
 
-    std::out << "pi-thrust pi calculated in \t\t" << comp_time << "ms." << std::endl;
-    std::cout << std::setprecision(3);
-    std::cout << "pi-thrust  estimate of PI \t\t= " << estimate << "[error of " << estimate - PI << "]" << std::endl;
+    std::cout << "pi-thrust pi calculated in \t" << comp_time << "ms." << std::endl;
+    std::cout << std::setprecision(7);
+    std::cout << "pi-thrust  estimate of PI \t= " << estimate << " \t[error of " ;
+    std::cout << std::setprecision(7) << std::fixed << estimate - PI << "]" << std::endl;
     return 0;
 }
 
