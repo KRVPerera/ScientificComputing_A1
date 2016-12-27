@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
 
     double * h_vector1 = (double *) malloc(sizeof(double) * N);
     double * h_vector2 = (double *) malloc(sizeof(double) * N);
-    double * h_vector3 = (double *) malloc(sizeof(double)*blocks);
+
     double * d_vector1, * d_vector2, * d_vector3;
 
     #pragma omp parallel
@@ -265,6 +265,7 @@ int main(int argc, char **argv) {
         GET_TIME(t0);
         // memory allocation on device
 #ifdef USE_DOUBLE
+        double * h_vector3 = (double *) malloc(sizeof(double)*blocks);
         HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, blocks * sizeof(double)));
@@ -278,6 +279,7 @@ int main(int argc, char **argv) {
 	      // copy device memory back to host memory
         HANDLE_ERROR(cudaMemcpy(h_vector3, d_vector3, blocks * sizeof(double), cudaMemcpyDeviceToHost));
 #else
+        float * h_vector3 = (float *) malloc(sizeof(float)*blocks);
         HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(float)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(float)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, blocks * sizeof(float)));

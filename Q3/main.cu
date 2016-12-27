@@ -19,15 +19,15 @@ using namespace std;
 
 #define HANDLE_ERROR(err) ( HandleError( err, __FILE__, __LINE__))
 
-#define GET_TIME(x);	if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
-				{ perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
+#define GET_TIME(x);    if (clock_gettime(CLOCK_MONOTONIC, &(x)) < 0) \
+                { perror("clock_gettime( ):"); exit(EXIT_FAILURE); }
 
-static void HandleError(cudaError_t err, const char *file, int line){
-	if(err != cudaSuccess){
-		printf("%s in %s at line %d\n", cudaGetErrorString(err), 
-				file, line);
-		exit(EXIT_FAILURE);
-	}
+static void HandleError(cudaError_t err, const char *file, int line) {
+    if (err != cudaSuccess) {
+        printf("%s in %s at line %d\n", cudaGetErrorString(err),
+               file, line);
+        exit(EXIT_FAILURE);
+    }
 }
 
 float elapsed_time_msec(struct timespec *begin, struct timespec *end,
@@ -47,36 +47,36 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
 // and lecture slide 2 TILE_WIDTH == BLOCK_SIZE
 
 #ifdef USE_DOUBLE
-__global__ void 
+__global__ void
 matrixMultiKernel(double *C, double *A, double *B, int Width){
-	const int BLOCK_SIZE = 16;	
-	// block indexes
-	int bx = blockIdx.x;
-	int by = blockIdx.y;
+    const int BLOCK_SIZE = 16;
+    // block indexes
+    int bx = blockIdx.x;
+    int by = blockIdx.y;
 
-	// thread indexes
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+    // thread indexes
+    int tx = threadIdx.x;
+    int ty = threadIdx.y;
 
-	// int col = bx * TILE_WIDTH  + tx
-	// int row = by * TILE_WIDTH  + ty
+    // int col = bx * TILE_WIDTH  + tx
+    // int row = by * TILE_WIDTH  + ty
 
-	// Dividing the matrices into sub sections
-	// Dividing the matrix A
-	int a_begin = Width * BLOCK_SIZE * by;
-	int a_end   = a_begin + Width - 1;
-	int a_step = BLOCK_SIZE;
+    // Dividing the matrices into sub sections
+    // Dividing the matrix A
+    int a_begin = Width * BLOCK_SIZE * by;
+    int a_end   = a_begin + Width - 1;
+    int a_step = BLOCK_SIZE;
 
-	// Dividing the matrix B
-	int b_begin = BLOCK_SIZE * bx;
-	int b_step = BLOCK_SIZE * Width;
+    // Dividing the matrix B
+    int b_begin = BLOCK_SIZE * bx;
+    int b_step = BLOCK_SIZE * Width;
 
-	double temp_c = 0;
+    double temp_c = 0;
 
 
-	// loop throught the submatrices
-	for(int a = a_begin, b = b_begin; a <= a_end; 
-			a += a_step, b += b_step) {
+    // loop throught the submatrices
+    for(int a = a_begin, b = b_begin; a <= a_end;
+            a += a_step, b += b_step) {
         // sub matrices
         __shared__ double sub_a[BLOCK_SIZE][BLOCK_SIZE];
         __shared__ double sub_b[BLOCK_SIZE][BLOCK_SIZE];
@@ -97,40 +97,40 @@ matrixMultiKernel(double *C, double *A, double *B, int Width){
         // sync all the global threads running the computations
         __syncthreads();
     }
-	int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * bx;
-	C[c + Width * ty + tx ] = temp_c;
+    int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * bx;
+    C[c + Width * ty + tx ] = temp_c;
 }
 #else
 
-__global__ void matrixMultiKernel(float *C, float *A, float *B, int Width){
+__global__ void matrixMultiKernel(float *C, float *A, float *B, int Width) {
 
     const int BLOCK_SIZE = 16;
-	// block indexes
-	int bx = blockIdx.x;
-	int by = blockIdx.y;
+    // block indexes
+    int bx = blockIdx.x;
+    int by = blockIdx.y;
 
-	// thread indexes
-	int tx = threadIdx.x;
-	int ty = threadIdx.y;
+    // thread indexes
+    int tx = threadIdx.x;
+    int ty = threadIdx.y;
 
-	// int col = bx * TILE_WIDTH  + tx
-	// int row = by * TILE_WIDTH  + ty
+    // int col = bx * TILE_WIDTH  + tx
+    // int row = by * TILE_WIDTH  + ty
 
-	// Dividing the matrices into sub sections
-	// Dividing the matrix A
-	int a_begin = Width * BLOCK_SIZE * by;
-	int a_end   = a_begin + Width - 1;
-	int a_step = BLOCK_SIZE;
+    // Dividing the matrices into sub sections
+    // Dividing the matrix A
+    int a_begin = Width * BLOCK_SIZE * by;
+    int a_end = a_begin + Width - 1;
+    int a_step = BLOCK_SIZE;
 
-	// Dividing the matrix B
-	int b_begin = BLOCK_SIZE * bx;
-	int b_step = BLOCK_SIZE * Width;
+    // Dividing the matrix B
+    int b_begin = BLOCK_SIZE * bx;
+    int b_step = BLOCK_SIZE * Width;
 
-	float temp_c = 0;
+    float temp_c = 0;
 
-	// loop throught the submatrices
-	for(int a = a_begin, b = b_begin; a <= a_end; 
-			a += a_step, b += b_step) {
+    // loop throught the submatrices
+    for (int a = a_begin, b = b_begin; a <= a_end;
+         a += a_step, b += b_step) {
         // sub matrices
         __shared__ float sub_a[BLOCK_SIZE][BLOCK_SIZE];
         __shared__ float sub_b[BLOCK_SIZE][BLOCK_SIZE];
@@ -151,8 +151,8 @@ __global__ void matrixMultiKernel(float *C, float *A, float *B, int Width){
         // sync all the global threads running the computations
         __syncthreads();
     }
-	int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * bx;
-	C[c + Width * ty + tx ] = temp_c;
+    int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * bx;
+    C[c + Width * ty + tx] = temp_c;
 }
 
 #endif
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
     int c, num_threads = 2;
     struct timespec t0, t1;
     unsigned long sec, nsec;
-    unsigned long  run_time;
+    unsigned long run_time;
     int N = 600;
     opterr = 1;
     seq_ver = p_ver = cuda_ver = veri_run = false;
@@ -222,7 +222,9 @@ int main(int argc, char **argv) {
 
     double *mat1 = new double [N*N];
     double *mat2 = new double [N*N];
-
+    double *mat_ans ;
+    double *mat_p_ans;
+    double *mat_c_ans ;
 cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     // cuda device pinters
     double *d_mat1,*d_mat2, *d_mat_c_ans;
@@ -239,8 +241,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
                  val2 = 1.0*rand()/RAND_MAX + 1;
                 mat1[j*N + i] = val1;
                 mat2[j*N + i] = val2;
-                mat_ans[j*N + i] = 0;
-                mat_p_ans[j*N + i] = 0;
+
             }
         }
     }
@@ -249,27 +250,26 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
     cout << "Generating float Matrices of size " << N << "x" << N << "\n";
 
-    float *mat1 = new float [N*N];
-    float *mat2 = new float [N*N];
-    float *mat_ans = new float [N*N];
-    float *mat_p_ans = new float [N*N];
-    float *mat_c_ans = new float [N*N];
-     // cuda device pinters
+    float *mat1 = new float[N * N];
+    float *mat2 = new float[N * N];
+    float *mat_ans;//= new float [N*N];
+    float *mat_p_ans;//= new float [N*N];
+    float *mat_c_ans;//= new float [N*N];
+    // cuda device pinters
     float *d_mat1, *d_mat2, *d_mat_c_ans;
 
-    #pragma omp parallel
+#pragma omp parallel
     {
         float val1;
         float val2;
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
             for (int i = 0; i < N; ++i) {
-                 val1 = 1.0*rand()/RAND_MAX + 1;
-                 val2 = 1.0*rand()/RAND_MAX + 1;
-                mat1[j*N + i] = val1;
-                mat2[j*N + i] = val2;
-                mat_ans[j*N + i] = 0;
-                mat_p_ans[j*N + i] = 0;
+                val1 = 1.0 * rand() / RAND_MAX + 1;
+                val2 = 1.0 * rand() / RAND_MAX + 1;
+                mat1[j * N + i] = val1;
+                mat2[j * N + i] = val2;
+
             }
         }
     }
@@ -280,20 +280,20 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     if (seq_ver || veri_run) {
         cout << "S >>> Sequential Version running...\n";
 #ifdef USE_DOUBLE
-        double *mat_ans = new double [N*N];
+        mat_ans = new double [N*N];
 #else
-        float *mat_ans = new float [N*N];
+        mat_ans = new float[N * N];
 #endif
         GET_TIME(t0);
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
                 // mat_ans is already set to zero
+                mat_ans[i * N + j] = 0;
                 for (int k = 0; k < N; ++k) {
-                    mat_ans[i*N+j] += mat1[i*N + k] * mat2[k*N + j];
+                    mat_ans[i * N + j] += mat1[i * N + k] * mat2[k * N + j];
                 }
             }
-        }
-        GET_TIME(t1);
+        }GET_TIME(t1);
         run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "S >>> Sequential Version Elapsed-time(ms) = " << run_time << " ms\n";
     }
@@ -301,9 +301,9 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
     if (p_ver) {
 #ifdef USE_DOUBLE
-        double *mat_p_ans = new double [N*N];
+        mat_p_ans = new double [N*N];
 #else
-        float *mat_p_ans = new float [N*N];
+        mat_p_ans = new float[N*N];
 #endif
         cout << "P >>> Parallel Version running...\n";
         cout << "P >>> number of threads : " << num_threads << "\n";
@@ -313,36 +313,31 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         double loc_sum;
         int i, j, k;
 
-        #pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
+#pragma omp parallel num_threads(num_threads) private(i,j,k) shared(mat1, mat2,mat_p_ans)
         {
-            #pragma omp for schedule (static) reduction(+:loc_sum)
+#pragma omp for schedule (static) reduction(+:loc_sum)
             for (i = 0; i < N; ++i) {
                 for (j = 0; j < N; ++j) {
                     loc_sum = 0;
                     for (k = 0; k < N; ++k) {
-                        loc_sum = loc_sum + (mat1[i*N + k] * mat2[k*N + j]);
+                        loc_sum = loc_sum + (mat1[i * N + k] * mat2[k * N + j]);
                     }
-                    mat_p_ans[i*N + j] = loc_sum;
+                    mat_p_ans[i * N + j] = loc_sum;
                 }
             }
-        }
-        GET_TIME(t1);
+        }GET_TIME(t1);
         run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "P >>> Parallel Version Elapsed-time(ms) = " << run_time << " ms\n";
+
     }
 
     if (cuda_ver) {
-#ifdef USE_DOUBLE
-        double *mat_c_ans = new double [N*N];
-#else
-        float *mat_c_ans = new float [N*N];
-#endif
         cout << "C >>> Cuda version is running...\n";
         int block_size = 4;
         dim3 threads(block_size, block_size);
-        dim3 grid(N / block_size, N / block_size);
-        GET_TIME(t0);
+        dim3 grid(N / block_size, N / block_size);GET_TIME(t0);
 #ifdef USE_DOUBLE
+        mat_c_ans = new double [N*N];
         //allocating memory on the device
         HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(double)));
@@ -353,18 +348,20 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         matrixMultiKernel<<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
         HANDLE_ERROR(cudaMemcpy(mat_c_ans, d_mat_c_ans, N * N * sizeof(double), cudaMemcpyDeviceToHost));
 #else
+        mat_c_ans = new float[N * N];
         HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(float)));
-        HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(float)));
+        HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N * sizeof(float)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat_c_ans, N * N * sizeof(float)));
         // copy host memory to device
         HANDLE_ERROR(cudaMemcpy(d_mat1, mat1, N * N * sizeof(float), cudaMemcpyHostToDevice));
         HANDLE_ERROR(cudaMemcpy(d_mat2, mat2, N * N * sizeof(float), cudaMemcpyHostToDevice));
-        matrixMultiKernel<<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
+        matrixMultiKernel << < grid, threads >> > (d_mat_c_ans, d_mat1, d_mat2, N);
         HANDLE_ERROR(cudaMemcpy(mat_c_ans, d_mat_c_ans, N * N * sizeof(float), cudaMemcpyDeviceToHost));
 #endif
         GET_TIME(t1);
         run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "S >>> Cuda Version Elapsed-time(ms) = " << run_time << " ms\n";
+
 
     }
     bool fail = false;
@@ -398,33 +395,33 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 #else
         float dot_length = N;
         if (cuda_ver) {
-            for (int i = 0; i < N*N; ++i) {
+            for (int i = 0; i < N * N; ++i) {
                 float abs_err = fabs(mat_c_ans[i] - mat_ans[i]);
                 float abs_val = fabs(mat_c_ans[i]);
-                float rel_err = abs_err/abs_val/dot_length;
-                if (rel_err> MACHINE_ZERO) {
-                    fail =  true;
-                    cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " <<  MACHINE_ZERO << endl;
+                float rel_err = abs_err / abs_val / dot_length;
+                if (rel_err > MACHINE_ZERO) {
+                    fail = true;
+                    cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " << MACHINE_ZERO << endl;
                     break;
                 }
             }
         } else if (p_ver) {
-            for (int i = 0; i < N*N; ++i) {
+            for (int i = 0; i < N * N; ++i) {
                 float abs_err = fabs(mat_p_ans[i] - mat_ans[i]);
                 float abs_val = fabs(mat_p_ans[i]);
-                float rel_err = abs_err/abs_val/dot_length;
-                if (rel_err> MACHINE_ZERO) {
-                    fail =  true;
-                    cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " <<  MACHINE_ZERO << endl;
+                float rel_err = abs_err / abs_val / dot_length;
+                if (rel_err > MACHINE_ZERO) {
+                    fail = true;
+                    cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " << MACHINE_ZERO << endl;
                     break;
                 }
             }
         }
 #endif
-        if(fail){
-            cout << "Accuracy failed, there are values with relative error > " <<  MACHINE_ZERO << endl;
-        }else{
-            cout << "Accuracy OK, there are no values with relative error > " <<  MACHINE_ZERO << endl;
+        if (fail) {
+            cout << "Accuracy failed, there are values with relative error > " << MACHINE_ZERO << endl;
+        } else {
+            cout << "Accuracy OK, there are no values with relative error > " << MACHINE_ZERO << endl;
         }
 
     }
@@ -433,12 +430,23 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
     delete[] mat1;
     delete[] mat2;
-    delete[] mat_ans;
-    delete[] mat_p_ans;
-    delete[] mat_c_ans;
-    cudaFree(d_mat1);
-    cudaFree(d_mat2);
-    cudaFree(d_mat_c_ans);
+
+    if(seq_ver || veri_run)
+    {
+        delete[] mat_ans;
+    }
+
+    if (cuda_ver) {
+        delete[] mat_c_ans;
+        cudaFree(d_mat_c_ans);
+        cudaFree(d_mat1);
+        cudaFree(d_mat2);
+    }
+
+    if (p_ver) {
+        delete[] mat_p_ans;
+    }
+
     std::cout << "Q3 Successfully ran\n";
     return 0;
 }
