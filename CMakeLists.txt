@@ -14,7 +14,7 @@ set(BLOCKS 128)
 set(THREADS 128)
 set(MACHINE_ZERO 1.e-6)
 
-option(USE_DOUBLE "Use double values in computation" OFF)
+option(USE_DOUBLE "Use double values in computation" ON)
 configure_file("A1Config.h.in" "${PROJECT_BINARY_DIR}/A1Config.h")
 #
 ## adding include path to find the generated config file

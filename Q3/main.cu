@@ -233,7 +233,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 #pragma omp parallel
     {
         double val1;
-        double val2
+        double val2;
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
             for (int i = 0; i < N; ++i) {
