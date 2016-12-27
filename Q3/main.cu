@@ -42,13 +42,13 @@ float elapsed_time_msec(struct timespec *begin, struct timespec *end,
 }
 
 
-// inspired by the cuda samples matrix multiplication
+// inspired by the Cuda Best C programming guide section 9
 // and lecture slide 2 TILE_WIDTH == BLOCK_SIZE
 
 #ifdef USE_DOUBLE
 __global__ void
 matrixMultiKernel(double *C, double *A, double *B, int Width){
-    const int BLOCK_SIZE = 16;
+    const int BLOCK_SIZE = 16; // NOTE: This must be similar to line 338
     // block indexes
     int bx = blockIdx.x;
     int by = blockIdx.y;
@@ -98,12 +98,13 @@ matrixMultiKernel(double *C, double *A, double *B, int Width){
     }
     int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * bx;
     C[c + Width * ty + tx ] = temp_c;
+//    printf("kernel Done \n");
 }
 #else
 
 __global__ void matrixMultiKernel(float *C, float *A, float *B, int Width) {
 
-    const int BLOCK_SIZE = 16;
+    const int BLOCK_SIZE = 16; // NOTE: This must be similar to line 338
     // block indexes
     int bx = blockIdx.x;
     int by = blockIdx.y;
@@ -152,6 +153,7 @@ __global__ void matrixMultiKernel(float *C, float *A, float *B, int Width) {
     }
     int c = Width * BLOCK_SIZE * by + BLOCK_SIZE * bx;
     C[c + Width * ty + tx] = temp_c;
+//    printf("kernel Done \n");
 }
 
 #endif
@@ -228,7 +230,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     // cuda device pinters
     double *d_mat1,*d_mat2, *d_mat_c_ans;
 
-    mat_c_ans = new double[N * N];
+    mat_c_ans = (double *)malloc(N*N*sizeof(double));
 #pragma omp parallel
     {
         double val1;
@@ -253,8 +255,8 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     float *mat2 = new float[N * N];
     float *mat_ans;
     float *mat_p_ans;
-    float *mat_c_ans;
-    mat_c_ans = new float[N * N];
+    float * mat_c_ans = (float *)malloc(N*N*sizeof(float));
+//    mat_c_ans = (float *)malloc(N*N*sizeof(float));
     // cuda device pinters
     float *d_mat1, *d_mat2, *d_mat_c_ans;
 
@@ -333,10 +335,11 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
     if (cuda_ver) {
         cout << "C >>> Cuda version is running...\n";
-        int block_size = 4;
+        int block_size = 16;
         dim3 threads(block_size, block_size);
         dim3 grid(N / block_size, N / block_size);GET_TIME(t0);
 #ifdef USE_DOUBLE
+
         //allocating memory on the device
         HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(double)));
@@ -436,7 +439,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     }
 
     if (cuda_ver) {
-        delete[] mat_c_ans;
+        free(mat_c_ans);
         cudaFree(d_mat_c_ans);
         cudaFree(d_mat1);
         cudaFree(d_mat2);
