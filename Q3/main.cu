@@ -243,7 +243,6 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
                 mat2[j*N + i] = val2;
                 mat_ans[j*N + i] = 0;
                 mat_p_ans[j*N + i] = 0;
-                mat_c_ans[j*N + i] = 0;
             }
         }
     }
@@ -273,7 +272,6 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
                 mat2[j*N + i] = val2;
                 mat_ans[j*N + i] = 0;
                 mat_p_ans[j*N + i] = 0;
-                mat_c_ans[j*N + i] = 0;
             }
         }
     }
@@ -365,12 +363,12 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         if (cuda_ver) {
             for (int i = 0; i < N*N; ++i) {
                 double abs_err = fabs(mat_c_ans[i] - mat_ans[i]);
-
                 double abs_val = fabs(mat_c_ans[i]);
                 double rel_err = abs_err/abs_val/dot_length;
                 if (rel_err> MACHINE_ZERO) {
                     fail =  true;
                     cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " <<  MACHINE_ZERO << endl;
+                    break;
                 }
             }
         } else if (p_ver) {
@@ -381,6 +379,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
                 if (rel_err> MACHINE_ZERO) {
                     fail =  true;
                     cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " <<  MACHINE_ZERO << endl;
+                    break;
                 }
             }
         }
@@ -389,7 +388,6 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         if (cuda_ver) {
             for (int i = 0; i < N*N; ++i) {
                 float abs_err = fabs(mat_c_ans[i] - mat_ans[i]);
-
                 float abs_val = fabs(mat_c_ans[i]);
                 float rel_err = abs_err/abs_val/dot_length;
                 if (rel_err> MACHINE_ZERO) {
