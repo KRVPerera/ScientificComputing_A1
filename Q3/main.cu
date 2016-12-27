@@ -341,7 +341,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         HANDLE_ERROR(cudaMemcpy(d_mat1, mat1, N * N * sizeof(double), cudaMemcpyHostToDevice));
         HANDLE_ERROR(cudaMemcpy(d_mat2, mat2, N * N * sizeof(double), cudaMemcpyHostToDevice));
         matrixMultiKernel<<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
-        HANDLE_ERROR(cudaMemcpy(d_mat_c_ans, d_mat_c_ans, N * N * sizeof(double), cudaMemcpyDeviceToHost));
+        HANDLE_ERROR(cudaMemcpy(mat_c_ans, d_mat_c_ans, N * N * sizeof(double), cudaMemcpyDeviceToHost));
 #else
         HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(float)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(float)));
@@ -361,10 +361,11 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
     if (veri_run) {
 #ifdef USE_DOUBLE
+        double dot_length = N;
         if (cuda_ver) {
             for (int i = 0; i < N*N; ++i) {
                 double abs_err = fabs(mat_c_ans[i] - mat_ans[i]);
-                double dot_length = N;
+
                 double abs_val = fabs(mat_c_ans[i]);
                 double rel_err = abs_err/abs_val/dot_length;
                 if (rel_err> MACHINE_ZERO) {
@@ -375,7 +376,6 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         } else if (p_ver) {
             for (int i = 0; i < N*N; ++i) {
                 double abs_err = fabs(mat_p_ans[i] - mat_ans[i]);
-                double dot_length = N;
                 double abs_val = fabs(mat_p_ans[i]);
                 double rel_err = abs_err/abs_val/dot_length;
                 if (rel_err> MACHINE_ZERO) {
@@ -385,10 +385,11 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
             }
         }
 #else
+        float dot_length = N;
         if (cuda_ver) {
             for (int i = 0; i < N*N; ++i) {
                 float abs_err = fabs(mat_c_ans[i] - mat_ans[i]);
-                float dot_length = N;
+
                 float abs_val = fabs(mat_c_ans[i]);
                 float rel_err = abs_err/abs_val/dot_length;
                 if (rel_err> MACHINE_ZERO) {
@@ -400,7 +401,6 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         } else if (p_ver) {
             for (int i = 0; i < N*N; ++i) {
                 float abs_err = fabs(mat_p_ans[i] - mat_ans[i]);
-                float dot_length = N;
                 float abs_val = fabs(mat_p_ans[i]);
                 float rel_err = abs_err/abs_val/dot_length;
                 if (rel_err> MACHINE_ZERO) {
