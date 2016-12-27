@@ -228,7 +228,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     // cuda device pinters
     double *d_mat1,*d_mat2, *d_mat_c_ans;
 
-
+    mat_c_ans = new double[N * N];
 #pragma omp parallel
     {
         double val1;
@@ -254,6 +254,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     float *mat_ans;
     float *mat_p_ans;
     float *mat_c_ans;
+    mat_c_ans = new float[N * N];
     // cuda device pinters
     float *d_mat1, *d_mat2, *d_mat_c_ans;
 
@@ -336,7 +337,6 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         dim3 threads(block_size, block_size);
         dim3 grid(N / block_size, N / block_size);GET_TIME(t0);
 #ifdef USE_DOUBLE
-        mat_c_ans = new double [N*N];
         //allocating memory on the device
         HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N *  sizeof(double)));
@@ -347,7 +347,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         matrixMultiKernel<<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
         HANDLE_ERROR(cudaMemcpy(mat_c_ans, d_mat_c_ans, N * N * sizeof(double), cudaMemcpyDeviceToHost));
 #else
-        mat_c_ans = new float[N * N];
+
         HANDLE_ERROR(cudaMalloc((void **) &d_mat1, N * N * sizeof(float)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat2, N * N * sizeof(float)));
         HANDLE_ERROR(cudaMalloc((void **) &d_mat_c_ans, N * N * sizeof(float)));
