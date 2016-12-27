@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
 
     double * h_vector1 = (double *) malloc(sizeof(double) * N);
     double * h_vector2 = (double *) malloc(sizeof(double) * N);
-
+    double * h_vector3 = (double * ) malloc(sizeof(double)*blocks);
     double * d_vector1, * d_vector2, * d_vector3;
 
     #pragma omp parallel
@@ -202,6 +202,7 @@ int main(int argc, char **argv) {
 
     float * h_vector1 = (float * ) malloc(sizeof(float)*N);
     float * h_vector2 = (float * ) malloc(sizeof(float)*N);
+   // float * h_vector3;
     float * h_vector3 = (float * ) malloc(sizeof(float)*blocks);
     float * d_vector1, * d_vector2, * d_vector3;
 
@@ -265,7 +266,7 @@ int main(int argc, char **argv) {
         GET_TIME(t0);
         // memory allocation on device
 #ifdef USE_DOUBLE
-        double * h_vector3 = (double *) malloc(sizeof(double)*blocks);
+        h_vector3 = (double *) malloc(sizeof(double)*blocks);
         HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(double)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, blocks * sizeof(double)));
@@ -279,7 +280,7 @@ int main(int argc, char **argv) {
 	      // copy device memory back to host memory
         HANDLE_ERROR(cudaMemcpy(h_vector3, d_vector3, blocks * sizeof(double), cudaMemcpyDeviceToHost));
 #else
-        float * h_vector3 = (float *) malloc(sizeof(float)*blocks);
+        h_vector3 = (float *) malloc(sizeof(float)*blocks);
         HANDLE_ERROR(cudaMalloc((void **) &d_vector1, N * sizeof(float)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector2, N * sizeof(float)));
         HANDLE_ERROR(cudaMalloc((void **) &d_vector3, blocks * sizeof(float)));
@@ -302,8 +303,7 @@ int main(int argc, char **argv) {
         GET_TIME(t1);
         comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         printf("P >>> Cuda Version Elapsed-time(ms) = %lf ms\n", comp_time);
-	    cudaFree(d_vector3);
-	    free(h_vector3);
+
     }
 
 #ifdef USE_DOUBLE
@@ -376,8 +376,14 @@ int main(int argc, char **argv) {
 #endif
     free(h_vector1);
     free(h_vector2);
-    cudaFree(d_vector1);
-    cudaFree(d_vector2);
+    free(h_vector3);
+
+    if(cuda_ver){
+        cudaFree(d_vector1);
+        cudaFree(d_vector2);
+        cudaFree(d_vector3);
+    }
+
     printf("Q2 Successful run..! \n");
     return 0;
 
