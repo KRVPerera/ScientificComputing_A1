@@ -222,9 +222,7 @@ int main(int argc, char **argv) {
 
     double *mat1 = new double [N*N];
     double *mat2 = new double [N*N];
-    double *mat_ans = new double [N*N];
-    double *mat_p_ans = new double [N*N];
-    double *mat_c_ans = new double [N*N];
+
 cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     // cuda device pinters
     double *d_mat1,*d_mat2, *d_mat_c_ans;
@@ -281,7 +279,11 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     cout << "Matrices creation Done... " << endl;
     if (seq_ver || veri_run) {
         cout << "S >>> Sequential Version running...\n";
-
+#ifdef USE_DOUBLE
+        double *mat_ans = new double [N*N];
+#else
+        float *mat_ans = new float [N*N];
+#endif
         GET_TIME(t0);
         for (int i = 0; i < N; ++i) {
             for (int j = 0; j < N; ++j) {
@@ -298,6 +300,11 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
 
     if (p_ver) {
+#ifdef USE_DOUBLE
+        double *mat_p_ans = new double [N*N];
+#else
+        float *mat_p_ans = new float [N*N];
+#endif
         cout << "P >>> Parallel Version running...\n";
         cout << "P >>> number of threads : " << num_threads << "\n";
         //opm
@@ -325,6 +332,11 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     }
 
     if (cuda_ver) {
+#ifdef USE_DOUBLE
+        double *mat_c_ans = new double [N*N];
+#else
+        float *mat_c_ans = new float [N*N];
+#endif
         cout << "C >>> Cuda version is running...\n";
         int block_size = 4;
         dim3 threads(block_size, block_size);
