@@ -24,8 +24,7 @@ using namespace std;
 
 static void HandleError(cudaError_t err, const char *file, int line) {
     if (err != cudaSuccess) {
-        printf("%s in %s at line %d\n", cudaGetErrorString(err),
-               file, line);
+        cerr << cudaGetErrorString(err) << " in " << file << " at line "  << line << endl;
         exit(EXIT_FAILURE);
     }
 }
@@ -252,9 +251,9 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
     float *mat1 = new float[N * N];
     float *mat2 = new float[N * N];
-    float *mat_ans;//= new float [N*N];
-    float *mat_p_ans;//= new float [N*N];
-    float *mat_c_ans;//= new float [N*N];
+    float *mat_ans;
+    float *mat_p_ans;
+    float *mat_c_ans;
     // cuda device pinters
     float *d_mat1, *d_mat2, *d_mat_c_ans;
 
