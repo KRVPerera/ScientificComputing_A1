@@ -17,9 +17,9 @@
 float elapsed_time_msec(struct timespec *, struct timespec *, unsigned long *, unsigned long *);
 
 
-#define NBIN TRIALS_PER_THREAD*BLOCKS*THREADS // 4096*256*256_
-#define NUM_BLOCK  BLOCKS  // Number of thread blocks
-#define NUM_THREAD  THREADS  // Number of threads per block
+#define NBIN TRIALS_PER_THREAD*BLOCKS*THREADS //TRIALS_PER_THREAD*BLOCKS*THREADS // 4096*256*256_
+#define NUM_BLOCK   30  // Number of thread blocks
+#define NUM_THREAD  192  // Number of threads per block, changed to the warp size
 
 #define PI 3.1415926535  // known value of pi
 int tid;

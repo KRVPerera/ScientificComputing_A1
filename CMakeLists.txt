@@ -10,8 +10,8 @@ set(CS4552_A1_VERSION_MINOR 9)
 ## Assignment configuration
 set(MAX_THREADS 20)
 set(TRIALS_PER_THREAD 4096)
-set(BLOCKS 256)
-set(THREADS 256)
+set(BLOCKS 128)
+set(THREADS 128)
 
 option(USE_DOUBLE "Use double values in computation" OFF)
 configure_file("A1Config.h.in" "${PROJECT_BINARY_DIR}/A1Config.h")

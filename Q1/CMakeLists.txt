@@ -14,7 +14,7 @@ if(OPENMP_FOUND)
 endif(OPENMP_FOUND)
 
 list(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_20,code=sm_20)
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
 cuda_add_executable(pi-mystery pi-mystery.cu)
 cuda_add_executable(pi-curand-thrust pi-curand-thrust.cu)
 cuda_add_executable(pi-myrand pi-myrand.cu)
