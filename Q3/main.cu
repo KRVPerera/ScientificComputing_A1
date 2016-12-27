@@ -10,6 +10,7 @@
 #include <omp.h>
 #include <A1Config.h>
 #include <cuda_runtime.h>
+#include <A1Config.h>
 
 using namespace std;
 
@@ -216,6 +217,7 @@ int main(int argc, char **argv) {
     srand(time(NULL));
 
 #ifdef USE_DOUBLE
+    cout << "Running DOUBLE version" << endl;
     cout << "Generating double Matrices of size " << N << "x" << N << "\n";
 
     double *mat1 = new double [N*N];
@@ -230,12 +232,13 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
 #pragma omp parallel
     {
-
+        double val1;
+        double val2
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
             for (int i = 0; i < N; ++i) {
-                double val1 = 1.0*rand()/RAND_MAX + 1;
-                double val2 = 1.0*rand()/RAND_MAX + 1;
+                 val1 = 1.0*rand()/RAND_MAX + 1;
+                 val2 = 1.0*rand()/RAND_MAX + 1;
                 mat1[j*N + i] = val1;
                 mat2[j*N + i] = val2;
                 mat_ans[j*N + i] = 0;
@@ -245,7 +248,7 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         }
     }
 #else
-
+    cout << "Running FLOAT version" << endl;
 
     cout << "Generating float Matrices of size " << N << "x" << N << "\n";
 
@@ -259,11 +262,13 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
     #pragma omp parallel
     {
+        float val1;
+        float val2;
 #pragma omp for schedule (static)
         for (int j = 0; j < N; ++j) {
             for (int i = 0; i < N; ++i) {
-                float val1 = 1.0*rand()/RAND_MAX + 1;
-                float val2 = 1.0*rand()/RAND_MAX + 1;
+                 val1 = 1.0*rand()/RAND_MAX + 1;
+                 val2 = 1.0*rand()/RAND_MAX + 1;
                 mat1[j*N + i] = val1;
                 mat2[j*N + i] = val2;
                 mat_ans[j*N + i] = 0;
@@ -275,9 +280,6 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
 
 #endif
 
-#ifdef USE_DOUBLE
-    cout << "Defined : USE_DOUBLE" << endl;
-#endif
     cout << "Matrices creation Done... " << endl;
     if (seq_ver || veri_run) {
         cout << "S >>> Sequential Version running...\n";
@@ -348,28 +350,73 @@ cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
         HANDLE_ERROR(cudaMemcpy(d_mat1, mat1, N * N * sizeof(float), cudaMemcpyHostToDevice));
         HANDLE_ERROR(cudaMemcpy(d_mat2, mat2, N * N * sizeof(float), cudaMemcpyHostToDevice));
         matrixMultiKernel<<< grid, threads >>>(d_mat_c_ans, d_mat1, d_mat2, N);
-        HANDLE_ERROR(cudaMemcpy(d_mat_c_ans, d_mat_c_ans, N * N * sizeof(float), cudaMemcpyDeviceToHost));
+        HANDLE_ERROR(cudaMemcpy(mat_c_ans, d_mat_c_ans, N * N * sizeof(float), cudaMemcpyDeviceToHost));
 #endif
         GET_TIME(t1);
         run_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         cout << "S >>> Cuda Version Elapsed-time(ms) = " << run_time << " ms\n";
 
     }
-
+    bool fail = false;
 
     if (veri_run) {
-        double diff = 0;
+#ifdef USE_DOUBLE
         if (cuda_ver) {
-
+            for (int i = 0; i < N*N; ++i) {
+                double abs_err = fabs(mat_c_ans[i] - mat_ans[i]);
+                double dot_length = N;
+                double abs_val = fabs(mat_c_ans[i]);
+                double rel_err = abs_err/abs_val/dot_length;
+                if (rel_err> MACHINE_ZERO) {
+                    fail =  true;
+                    cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " <<  MACHINE_ZERO << endl;
+                }
+            }
         } else if (p_ver) {
-
-            for (int i = 0; i < N; ++i) {
-                for (int j = 0; j < N; ++j) {
-                    diff += fabs(mat_p_ans[i*N+j] - mat_ans[i*N+j]);
+            for (int i = 0; i < N*N; ++i) {
+                double abs_err = fabs(mat_p_ans[i] - mat_ans[i]);
+                double dot_length = N;
+                double abs_val = fabs(mat_p_ans[i]);
+                double rel_err = abs_err/abs_val/dot_length;
+                if (rel_err> MACHINE_ZERO) {
+                    fail =  true;
+                    cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " <<  MACHINE_ZERO << endl;
                 }
             }
         }
-        cout << "Diff : " << diff << "\n";
+#else
+        if (cuda_ver) {
+            for (int i = 0; i < N*N; ++i) {
+                float abs_err = fabs(mat_c_ans[i] - mat_ans[i]);
+                float dot_length = N;
+                float abs_val = fabs(mat_c_ans[i]);
+                float rel_err = abs_err/abs_val/dot_length;
+                if (rel_err> MACHINE_ZERO) {
+                    fail =  true;
+                    cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " <<  MACHINE_ZERO << endl;
+                    break;
+                }
+            }
+        } else if (p_ver) {
+            for (int i = 0; i < N*N; ++i) {
+                float abs_err = fabs(mat_p_ans[i] - mat_ans[i]);
+                float dot_length = N;
+                float abs_val = fabs(mat_p_ans[i]);
+                float rel_err = abs_err/abs_val/dot_length;
+                if (rel_err> MACHINE_ZERO) {
+                    fail =  true;
+                    cout << "Error! index : " << i << " rel_err : " << rel_err << "  is > " <<  MACHINE_ZERO << endl;
+                    break;
+                }
+            }
+        }
+#endif
+        if(fail){
+            cout << "Accuracy failed, there are values with relative error > " <<  MACHINE_ZERO << endl;
+        }else{
+            cout << "Accuracy OK, there are no values with relative error > " <<  MACHINE_ZERO << endl;
+        }
+
     }
 
     // Cleaning up

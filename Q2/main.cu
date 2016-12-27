@@ -167,6 +167,7 @@ int main(int argc, char **argv) {
     srand(time(NULL));
 
 #ifdef USE_DOUBLE
+    printf("Running DOUBLE version \n");
     long double answer = 0;
     long double answer_c = 0;// = (long double *) malloc(sizeof(long double));
     long double answer_p = 0;
@@ -192,6 +193,7 @@ int main(int argc, char **argv) {
     cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
     printf("Vector 2 first %f\n", h_vector2[0]);
 #else
+    printf("Running float version \n");
     float answer = 0;
     float answer_c = 0;
     float answer_p = 0;
@@ -205,11 +207,12 @@ int main(int argc, char **argv) {
 
 #pragma omp parallel
     {
+        float val;
 #pragma omp for
         for (int j = 0; j < N; ++j) {
-            float val = 1.0*random()/RAND_MAX + 1;
+            val = 1.0*rand()/RAND_MAX + 1;
             h_vector1[j] = val;
-            val = 1.0*random()/RAND_MAX + 1;
+            val = 1.0*rand()/RAND_MAX + 1;
             h_vector2[j] = val;
         }
     }
@@ -228,12 +231,13 @@ int main(int argc, char **argv) {
         printf("P >>> number of threads : %d\n", num_threads);
         //  #pragma omp parallel shared(local_sum, h_vector1, h_vector2, num_threads) private(id, istart, iend, i)
         GET_TIME(t0);
-
-#pragma omp parallel num_threads(num_threads)
+        answer_p = 0;
+        #pragma omp parallel num_threads(num_threads) shared(h_vector1, h_vector2)
         {
-#pragma omp for schedule(static) reduction(+:answer_p)
+
+            #pragma omp for schedule(static) reduction(+:answer_p)
             for (int i = 0; i < N; i++) {
-                answer_p = answer_p + (h_vector1[i] * h_vector2[i]);
+                answer_p = answer_p+ (h_vector1[i] * h_vector2[i]);
             }
         }
 
@@ -296,8 +300,8 @@ int main(int argc, char **argv) {
         GET_TIME(t1);
         comp_time = elapsed_time_msec(&t0, &t1, &sec, &nsec);
         printf("P >>> Cuda Version Elapsed-time(ms) = %lf ms\n", comp_time);
-	cudaFree(d_vector3);
-	free(h_vector3);
+	    cudaFree(d_vector3);
+	    free(h_vector3);
     }
 
 #ifdef USE_DOUBLE
@@ -306,20 +310,31 @@ int main(int argc, char **argv) {
 
         if (cuda_ver) {
             printf("C >>> Cuda Version Answer: %Lf\n", answer_c);
-            if (fabs(answer - answer_c) > 0.01) {
+            double abs_err = fabs(answer_c-answer);
+            double dot_length = N;
+            double abs_val = fabs(answer_c);
+            double rel_err = abs_err/abs_val/dot_length;
+            if (rel_err> MACHINE_ZERO) {
                 printf("Values are different\n");
+                printf("Error! relative error is > %E\n", MACHINE_ZERO);
             }else{
                 printf("Values are similar\n");
+                printf("Error! rel_err %E relative error is < %E\n",rel_err, MACHINE_ZERO);
             }
-            printf("Diff : %Lf\n", fabs(answer - answer_c));
+            printf("Diff : %f\n", abs_err);
         } else if (p_ver) {
             printf("P >>> Parallel Version Answer: %Lf\n", answer_p);
-            if (fabs(answer - answer_p) > 0.01) {
-                printf("Values are different\n");
+            double abs_err = fabs(answer_p-answer);
+            double dot_length = N;
+            double abs_val = fabs(answer_p);
+            double rel_err = abs_err/abs_val/dot_length;
+            if (rel_err> MACHINE_ZERO) {
+                printf("Error! rel_err %E relative error is > %E\n",rel_err, MACHINE_ZERO);
             }else{
                 printf("Values are similar\n");
+                printf("Error! rel_err %E relative error is < %E\n",rel_err, MACHINE_ZERO);
             }
-            printf("Diff : %Lf\n", fabs(answer - answer_p));
+            printf("Diff : %f\n", abs_err);
         }
     }
 #else
@@ -328,20 +343,32 @@ int main(int argc, char **argv) {
 
         if (cuda_ver) {
             printf("C >>> Cuda Version Answer: %f\n", answer_c);
-            if (fabs(answer - answer_c) > 0.01) {
+            float abs_err = fabs(answer_c-answer);
+            float dot_length = N;
+            float abs_val = fabs(answer_c);
+            float rel_err = abs_err/abs_val/dot_length;
+            if (rel_err> MACHINE_ZERO) {
                 printf("Values are different\n");
+                printf("Error! relative error is > %E\n", MACHINE_ZERO);
             }else{
                 printf("Values are similar\n");
+                printf("Error! rel_err %E relative error is < %E\n",rel_err, MACHINE_ZERO);
             }
-            printf("Diff : %f\n", fabs(answer - answer_c));
+            printf("Diff : %f\n", abs_err);
         } else if (p_ver) {
             printf("P >>> Parallel Version Answer: %f\n", answer_p);
-            if (fabs(answer - answer_p) > 0.01) {
-                printf("Values are different\n");
+            float abs_err = fabs(answer_p-answer);
+            float dot_length = N;
+            float abs_val = fabs(answer_p);
+            float rel_err = abs_err/abs_val/dot_length;
+            if (rel_err> MACHINE_ZERO) {
+                printf("Error! rel_err %E relative error is > %E\n",rel_err, MACHINE_ZERO);
             }else{
                 printf("Values are similar\n");
+                printf("Error! rel_err %E relative error is < %E\n",rel_err, MACHINE_ZERO);
             }
-            printf("Diff : %f\n", fabs(answer - answer_p));
+            printf("Diff : %f\n", abs_err);
+
         }
     }
 #endif
@@ -349,7 +376,7 @@ int main(int argc, char **argv) {
     free(h_vector2);
     cudaFree(d_vector1);
     cudaFree(d_vector2);
-    printf("Q2 Successful ran..! \n");
+    printf("Q2 Successful run..! \n");
     return 0;
 
 }

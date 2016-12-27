@@ -12,6 +12,7 @@ set(MAX_THREADS 20)
 set(TRIALS_PER_THREAD 4096)
 set(BLOCKS 128)
 set(THREADS 128)
+set(MACHINE_ZERO 1.e-6)
 
 option(USE_DOUBLE "Use double values in computation" OFF)
 configure_file("A1Config.h.in" "${PROJECT_BINARY_DIR}/A1Config.h")
